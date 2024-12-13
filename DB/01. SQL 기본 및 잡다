@@ -1,8 +1,9 @@
+출처 : https://www.sqltutorial.org/
+
+샘플 DB
 
 
-
-출처 : https://www.geeksforgeeks.org/order-of-execution-of-sql-queries/
-
+SQL 실행 순서
 1. FROM
 JOIN이 포함된 경우 JOIN을 수행한 뒤에 FROM을 수행한다. 기술적으로 JOIN 연산은 FROM 절의 일부.
 2. WHERE
@@ -12,3 +13,5 @@ JOIN이 포함된 경우 JOIN을 수행한 뒤에 FROM을 수행한다. 기술�
 6. DISTINCT
 7. ORDER BY
 8. LIMIT, OFFSET
+
+출처 : https://www.geeksforgeeks.org/order-of-execution-of-sql-queries/
