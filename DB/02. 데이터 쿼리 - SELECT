@@ -11,4 +11,5 @@ SELECT
 
 예제 1) 테이블의 모든 행과 열에서 데이터를 조회
 SELECT * FROM employees;
-https://github.com/seejh/StudyRepo/issues/1#issue-2740518987
+![image](https://github.com/user-attachments/assets/486aaf9d-c7ee-4778-81bd-d1624acd0544)
+
