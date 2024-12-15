@@ -12,6 +12,6 @@ SELECT
 예제 1) 테이블의 모든 행과 열에서 데이터를 조회
 SELECT * FROM employees;
 결과:
-![image](https://github.com/user-attachments/assets/81e7bc05-502f-4a9a-aad9-8d4c26de1c87)
 
+![image](https://github.com/user-attachments/assets/0b57d470-ab1e-4fcb-8e22-5c11a300b21e)
 
