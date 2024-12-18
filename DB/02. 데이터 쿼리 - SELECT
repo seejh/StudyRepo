@@ -11,6 +11,3 @@ SELECT
 테이블에서 데이터를 조회
 
 예제 1) 테이블의 모든 행과 열에서 데이터를 조회
-SELECT * FROM employees;
-![test](https://github.com/user-attachments/assets/9ec35b04-09d9-448c-8048-8ea26e13e361)
-![test](https://github.com/user-attachments/assets/6f65d045-4aaa-4464-a305-94cefc9ab830)
