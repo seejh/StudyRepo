@@ -25,7 +25,33 @@ SELECT 명령문 외에도 UPDATE와 DELETE 명령문에서도 사용하여 업�
 숫자 : 형식 없이 그대로 사용 - 예) 100, 30.5 <br/>
 문자 : 작은 따옴표 또는 큰 따옴표로 묶어서 사용 - 예) '100', 'John' <br/>
 날짜 : DB에 지정된 형식 사용, DB마다 다름 - 예) 'yyyy-mm-dd' <br/>
-시간 : DB에 지정된 형식 사용, DB마다 다름 - 예) 'HH:MM:SS' <br/>
+시간 : DB에 지정된 형식 사용, DB마다 다름 - 예) 'HH:MM:SS' <br/><br/>
+
+비교 연산자<br/>
+<table>
+<th>연산자</th><th>의미</th>
+<tr><td>=</td><td>같다</td></tr>
+<tr><td>!=, <></td><td>같지 않음</td></tr>
+<tr><td>></td><td>보다 큼</td></tr>
+<tr><td>>=</td><td>크거나 같음</td></tr>
+<tr><td><</td><td>미만</td></tr>
+<tr><td><=</td><td>작거나 같음</td></tr>
+</table>
+
+논리 연산자<br/>
+<table>
+<th>연산자</th><th>의미</th>
+<tr><td>ALL</td><td>모든 비교가 참이면 true 반환</td></tr>
+<tr><td>AND</td><td>두 표현식이 모두 참인 경우 true 반환</td></tr>
+<tr><td>ANY</td><td>비교 중 하나라도 참이면 true 반환</td></tr>
+<tr><td>BETWEEN</td><td>피연산자가 범위 내에 있으면 true 반환</td></tr>
+<tr><td>EXISTS</td><td>하위 쿼리에 행이 포함된 경우 true 반환</td></tr>
+<tr><td>IN</td><td>피연산자가 목록의 값 중 하나와 같으면 true 반환</td></tr>
+<tr><td>LIKE</td><td>피연산자가 패턴과 일치하면 true 반환</td></tr>
+<tr><td>NOT</td><td>부울 연산자의 결과를 반대로</td></tr>
+<tr><td>OR</td><td>두 표현식 중 하나라도 참이면 true 반환</td></tr>
+<tr><td>SOME</td><td>일부 표현식이 참이면 true 반환</td></tr>
+</table>
 
 <hr/>
 
