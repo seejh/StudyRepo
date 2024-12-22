@@ -1,6 +1,6 @@
-LIMIT <br/>
+LIMIT, FETCH, SELECT TOP <br/>
 내용 요약<br/>
-LIMIT 절을 사용하여 쿼리에서 반한되는 행 수를 제한, OFFSET으로 행을 건너뜀.
+쿼리에서 반한되는 행 수를 제한, OFFSET으로 행을 건너뜀. SQL 표준이 아니므로 사용하는 DB 시스템에 따라 달라짐(LIMIT, FETCH, SELECT TOP)
 
 기본 사용법<br/>
 <table>
