@@ -15,6 +15,7 @@ Detour는 목표 지점까지의 최적 경로를 계산, 경로가 변경되거
 
 # 프로젝트에 통합
 TODO : 추가 방법과 샘플 확인법 추가 해야한다.
+소스에 직접 통합, vcpkg 종속성 관리자를 통한 설치
 
 # 프로젝트에 통합 후 시작
 ~~~c++
@@ -72,4 +73,29 @@ Detour는 Recast가 생성한 네비게이션 메시지를 바탕으로 AI 캐�
 출처 : <br/>
 https://ko.ittrip.xyz/c-plus-plus/cpp-game-server-recast-detour-pathfinding
 https://github.com/recastnavigation/recastnavigation
+
+<br/><br/><br/><br/><br/><br/>
+
+<hr/>
+
+# Recast Navigation 샘플 데모 사용(일단 여기다 정리, 추후 수정 필요)
+https://github.com/recastnavigation/recastnavigation/tree/main 에서 RecastNavigation 다운로드<br/>
+다운 후 솔루션 파일 생성을 해야 하는데 선행 되어야 할 것들이 있다.
+
+#### SDL 라이브러리
+https://github.com/libsdl-org/SDL 에서 SDL(Simple Directmedia Layer) 다운로드<br/>
+다운 후 RecastDemo/Contrib 에 압축을 풀어준다.
+
+#### premake로 솔루션 파일 생성
+https://premake.github.io/ 에서 premake를 다운로드<br/>
+RecastDemo 폴더에 위치시킨 후 CMD 상에서 아래와 같은 형식으로 명령을 입력한다.<br/>
+![image](https://github.com/user-attachments/assets/4885bb22-8bb0-43cd-b53d-9103c4921d6b)
+
+해당 명령 실행 후 RecastNavigation의 솔루션 파일이 생긴다.
+해당 파일을 비주얼 스튜디오로 실행한 후 RecastDemo를 시작 프로젝트로 설정 후 빌드 후 실행한다.
+
+
+출처 : <br/>
+https://meistertj.tistory.com/28  - 설치 내용<br/>
+https://yunus-lab.tistory.com/13  - 샘플 사용 내용<br/>
 
