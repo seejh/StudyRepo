@@ -50,5 +50,5 @@ vcpkg integrate remove
 
 <hr/>
 출처 : <br/>
+https://ralpioxxcs.github.io/post/vcpkg/vcpkg_1/ <br/>
 https://jacking75.github.io/Cpp-0501/ - <br/>
-https://github.com/luncliff/vcpkg-registry/blob/0.2210.0/docs/vcpkg-for-kor.md - 한국어 설명 <br/> 
