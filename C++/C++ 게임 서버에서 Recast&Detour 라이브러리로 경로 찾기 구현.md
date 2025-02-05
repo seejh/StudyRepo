@@ -83,8 +83,9 @@ https://github.com/recastnavigation/recastnavigation/tree/main 에서 RecastNavi
 솔루션 파일 생성을 해야 하는데 선행 되어야 할 것들이 있다.
 
 #### SDL(Simple Directmedia Layer) 라이브러리 설치
-https://github.com/libsdl-org/SDL/releases/tag/release-3.2.2 에서 SDL 다운로드<br/>
-![image](https://github.com/user-attachments/assets/3c4eafed-c59b-4e35-b5f3-70cf397aa46c)<br/>
+2점 대 버전을 설치해야 한다.(ex SDL-2.x) <br/>
+https://github.com/libsdl-org/SDL/releases/tag/release-2.30.7 에서 SDL 다운로드 <br/>
+![image](https://github.com/user-attachments/assets/724c24e9-6de1-40ce-8950-e82ed4068388)<br/>
 다운 후 RecastDemo/Contrib 에 압축 해제<br/>
 설치된 SDL-버전 형식의 폴더명을 SDL로 변경해준다. (변경 후 파일 계층 상황 = RecastDemo/Contrib/SDL/)<br/>
 
@@ -94,6 +95,12 @@ Path 환경 변수에 등록, CMD 상에서 아래와 같은 형식으로 명령
 ![image](https://github.com/user-attachments/assets/425a0a1d-767f-40e3-aa65-d78dae31da3e)<br/>
 해당 명령 실행 후 RecastNavigation의 솔루션 파일이 생긴다. (RecastDemo/Build/vs2022/ 경로에 생성됨)<br/>
 해당 파일을 비주얼 스튜디오로 실행 -> RecastDemo를 시작 프로젝트로 설정 -> 빌드 -> 실행<br/>
+
+#### 시행 착오
+위의 내용에서 SDL을 3.대 버전으로 사용했더니 빌드시에 아래와 같은 문제가 생김
+![image](https://github.com/user-attachments/assets/ce1c0433-28b6-4d8f-a703-a12637fc2cbd)<br/>
+3버전 제거 후 2버전으로  -> OK
+
 
 
 출처 : <br/>
