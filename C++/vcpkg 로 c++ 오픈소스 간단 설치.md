@@ -1,6 +1,6 @@
 
 # vcpkg란?
-Microsoft에서 제공하는 오픈소스 C/C++ 패키지 매니저.<br/>
+Microsoft에서 제공하는 오픈소스 C/C++ 패키지 툴<br/>
 C++ 오픈 소스 라이브러리 설치, 링크를 간단하게 해준다.<br/>
 내부적으로 라이브러리의 소스 코드를 다운 받아서 직접 컴파일하는 방식을 사용한다.<br/>
 
@@ -13,8 +13,8 @@ C++ 오픈 소스 라이브러리 설치, 링크를 간단하게 해준다.<br/>
 빌드 시스템 : MSBuild, CMake<br/>
 
 # vcpkg 설치
-https://github.com/microsoft/vcpkg 에서 깃이나 직접 다운로드 후 bootstrap-vcpkg.bat 실행하여 빌드<br/>
-vcpkg.exe 파일이 생성되면 Path 환경 변수(경로\vcpkg)를 추가한다.<br/>
+https://github.com/microsoft/vcpkg 에서 깃이나 직접 다운로드 후 bootstrap-vcpkg.bat 파일을 실행하여 빌드<br/>
+vcpkg.exe 파일이 생성되면 Path 환경 변수를 추가한다. (내 pc 우클릭 -> 속성 -> 고급 시스템 설정 -> 환경 변수 -> 시스템 변수 탭 -> Path 변수 편집 -> 새로 만들기 -> vcpkg.exe 실행 파일이 있는 폴더 입력)<br/>
 
 # vcpkg와 visual studio 연동
 CMD 상에서 vcpkg integrate install 입력. visual studio 에서 vcpkg에 설치된 라이브러리를 자동으로 인식한다.
@@ -49,4 +49,6 @@ vcpkg install 라이브러리명:사용 환경(triplets)
 vcpkg integrate remove
 
 <hr/>
-출처 : 
+출처 : <br/>
+https://jacking75.github.io/Cpp-0501/ - <br/>
+https://github.com/luncliff/vcpkg-registry/blob/0.2210.0/docs/vcpkg-for-kor.md - 한국어 설명 <br/> 
