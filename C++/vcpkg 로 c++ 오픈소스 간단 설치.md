@@ -43,8 +43,10 @@ vcpkg install 라이브러리명:사용 환경(triplets)
 
 # 설치된 패키지 사용
 설치된 라이브러리는 아래 경로에 설치되며 비주얼 스튜디오 상에서 #include 라이브러리명으로 찾아서 사용.<br/>
-경로 : vcpkg 디렉토리\installed\x64-windows\
+경로 : vcpkg 디렉토리\installed\x64-windows\ <br/>
 
+
+vcpkg integrate remove
 
 <hr/>
 출처 : 
