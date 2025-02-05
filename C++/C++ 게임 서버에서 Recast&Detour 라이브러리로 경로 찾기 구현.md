@@ -96,6 +96,5 @@ RecastDemo 폴더에 위치시킨 후 CMD 상에서 아래와 같은 형식으�
 
 
 출처 : <br/>
-https://meistertj.tistory.com/28  - 설치 내용<br/>
 https://yunus-lab.tistory.com/13  - 샘플 사용 내용<br/>
 
