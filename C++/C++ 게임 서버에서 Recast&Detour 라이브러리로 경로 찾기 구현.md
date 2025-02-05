@@ -89,7 +89,8 @@ https://github.com/libsdl-org/SDL 에서 SDL(Simple Directmedia Layer) 다운로
 #### premake로 솔루션 파일 생성
 https://premake.github.io/ 에서 premake를 다운로드<br/>
 RecastDemo 폴더에 위치시킨 후 CMD 상에서 아래와 같은 형식으로 명령을 입력한다.<br/>
-![image](https://github.com/user-attachments/assets/4885bb22-8bb0-43cd-b53d-9103c4921d6b)
+![image](https://github.com/user-attachments/assets/425a0a1d-767f-40e3-aa65-d78dae31da3e)
+
 
 해당 명령 실행 후 RecastNavigation의 솔루션 파일이 생긴다.
 해당 파일을 비주얼 스튜디오로 실행한 후 RecastDemo를 시작 프로젝트로 설정 후 빌드 후 실행한다.
