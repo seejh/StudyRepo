@@ -79,21 +79,21 @@ https://github.com/recastnavigation/recastnavigation
 <hr/>
 
 # Recast Navigation 샘플 데모 사용(일단 여기다 정리, 추후 수정 필요)
-https://github.com/recastnavigation/recastnavigation/tree/main 에서 RecastNavigation 다운로드<br/>
-다운 후 솔루션 파일 생성을 해야 하는데 선행 되어야 할 것들이 있다.
+https://github.com/recastnavigation/recastnavigation/tree/main 에서 RecastNavigation 다운 후 압축 해제<br/>
+솔루션 파일 생성을 해야 하는데 선행 되어야 할 것들이 있다.
 
-#### SDL 라이브러리
-https://github.com/libsdl-org/SDL 에서 SDL(Simple Directmedia Layer) 다운로드<br/>
-다운 후 RecastDemo/Contrib 에 압축을 풀어준다.
+#### SDL(Simple Directmedia Layer) 라이브러리 설치
+https://github.com/libsdl-org/SDL/releases/tag/release-3.2.2 에서 SDL 다운로드<br/>
+![image](https://github.com/user-attachments/assets/3c4eafed-c59b-4e35-b5f3-70cf397aa46c)<br/>
+다운 후 RecastDemo/Contrib 에 압축 해제<br/>
+설치된 SDL-버전 형식의 폴더명을 SDL로 변경해준다. (변경 후 파일 계층 상황 = RecastDemo/Contrib/SDL/)<br/>
 
 #### premake로 솔루션 파일 생성
-https://premake.github.io/ 에서 premake를 다운로드<br/>
-RecastDemo 폴더에 위치시킨 후 CMD 상에서 아래와 같은 형식으로 명령을 입력한다.<br/>
-![image](https://github.com/user-attachments/assets/425a0a1d-767f-40e3-aa65-d78dae31da3e)
-
-
-해당 명령 실행 후 RecastNavigation의 솔루션 파일이 생긴다.
-해당 파일을 비주얼 스튜디오로 실행한 후 RecastDemo를 시작 프로젝트로 설정 후 빌드 후 실행한다.
+https://premake.github.io/ 에서 premake를 다운 후 RecastDemo 폴더에 압축 해제 (premake5.exe 실행 파일 하나)<br/>
+Path 환경 변수에 등록, CMD 상에서 아래와 같은 형식으로 명령을 입력한다.<br/>
+![image](https://github.com/user-attachments/assets/425a0a1d-767f-40e3-aa65-d78dae31da3e)<br/>
+해당 명령 실행 후 RecastNavigation의 솔루션 파일이 생긴다. (RecastDemo/Build/vs2022/ 경로에 생성됨)<br/>
+해당 파일을 비주얼 스튜디오로 실행 -> RecastDemo를 시작 프로젝트로 설정 -> 빌드 -> 실행<br/>
 
 
 출처 : <br/>
