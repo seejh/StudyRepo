@@ -66,20 +66,7 @@ vcpkg add port fmt
 
 
 #### 설치
-visual studio 영어 언어 팩이 없으면 패키지 설치가 되지 않는다고 한다. 없으면 visual studio installer에서 언어 팩 란에서 영어를 찾아서 설치.<br/>
-CMD 상에서 아래와 같은 형식으로 입력하여 다운 받는다.
-사용 환경(triplets)은 명시하지 않아도 되지만, 기본값은 x86-windows 이다.
-~~~
-vcpkg install 라이브러리명:사용 환경(triplets)
-~~~
-
-![image](https://github.com/user-attachments/assets/da6a2754-ec1b-4fae-a184-69d5a740b984)
-
-# 설치된 패키지 사용
-설치된 라이브러리는 아래 경로에 설치되며 비주얼 스튜디오 상에서 #include 라이브러리명으로 찾아서 사용.<br/>
-경로 : vcpkg 디렉토리\installed\x64-windows\ <br/>
-
-
+visual studio 영어 언어 팩이 없으면 패키지 설치가 되지 않는다고 한다. , 트리플렛
 
 
 
@@ -92,4 +79,4 @@ https://luncliff.github.io/vcpkg-registry/vcpkg-for-kor.html - 한국어로 된 
 https://ralpioxxcs.github.io/post/vcpkg/vcpkg_1/ - <br/>
 
 https://github.com/microsoft/vcpkg-docs/blob/main/vcpkg/consume/manifest-mode.md - MS 매니페스트 모드<br/>
-- MS 클래식 모드<br/>
+https://github.com/microsoft/vcpkg-docs/blob/main/vcpkg/consume/classic-mode.md - MS 클래식 모드<br/>
