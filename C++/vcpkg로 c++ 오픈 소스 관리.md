@@ -33,6 +33,8 @@ vcpkg search 라이브러리명
 https://vcpkg.io/en/packages?query= 접속해서 원하는 라이브러리 검색
 
 # 클래식 모드
+
+#### 라이브러리 설치 (예제 라이브러리 fmt)
 1) 라이브러리 설치 <br/>
 vcpkg install 라이브러리명
 
@@ -48,12 +50,12 @@ vcpkg 설치 경로\installed\
 비주얼스튜디오 -> 도구 -> 명령줄 -> 개발자 명령 프롬프트 -> vcpkg new --application 명령 입력 <br/>
 (vcpkg.json, vcpkg-configuration.json, 이 2개 파일이 솔루션 폴더에 생성)
 
-#### 라이브러리 설치(이 예제에서 사용할 오프 소스 = fmt)
+#### 라이브러리 설치 (예제 라이브러리 fmt)
 1) 매니페스트 파일에 종속성(Dependency) 추가 <br/>
 CMD상에서 매니페스트 파일이 존재하는 경로에서 아래의 명령 형식을 입력하여 원하는 종속성을 추가한다.
 vcpkg add port fmt
 
-2) 라이브러리 설치 <br/>
+2) 프로젝트 빌드 <br/>
 매니페스트 모드가 활성화된 프로젝트에서 빌드를 하면 MSBuild가 매니페스트 파일을 참조하여 명시된 종속성을 자동으로 설치한다.
 다만, 실사용을 해보면 빌드가 굉장히 느려지기 때문에 필요한 오픈 소스를 설치하고 난 후라면 평소에는 종속성을 설치하는 기능을 Off하고 또 다른 오픈 소스를 추가할 필요가 있을 때 다시 On을 하는 것이 옳아 보인다. <br/>
 프로젝트 속성 -> vcpkg -> install vcpkg dependencies
@@ -62,13 +64,8 @@ vcpkg add port fmt
 프로젝트솔루션폴더\vcpkg_installed\
 
 
-
-
-
-#### 설치
+## 넣어야 할 내용
 visual studio 영어 언어 팩이 없으면 패키지 설치가 되지 않는다고 한다. , 트리플렛
-
-
 
 
 
