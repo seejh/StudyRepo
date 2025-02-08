@@ -74,6 +74,7 @@ visual studio 영어 언어 팩이 없으면 패키지 설치가 되지 않는�
 https://eachan.tistory.com/182 - CMake <br/>
 https://luncliff.github.io/vcpkg-registry/vcpkg-for-kor.html - 한국어로 된 깊은 설명 <br/>
 https://ralpioxxcs.github.io/post/vcpkg/vcpkg_1/ - <br/>
+https://jacking75.github.io/Cpp-0501/ - <br/>
 
 https://github.com/microsoft/vcpkg-docs/blob/main/vcpkg/consume/manifest-mode.md - MS 매니페스트 모드<br/>
 https://github.com/microsoft/vcpkg-docs/blob/main/vcpkg/consume/classic-mode.md - MS 클래식 모드<br/>
