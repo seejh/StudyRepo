@@ -53,7 +53,7 @@ https://yunus-lab.tistory.com/13  - 샘플 사용 내용<br/>
 # RecastNavigation C++ 게임 서버에서 사용(Unreal, C++ 게임 서버)
 #### 수순
 1) Unity, Unreal에서 맵 정보를 .obj 파일로 추출
-2) .obj 파일을 Recast로 렌더링
+2) .obj 파일을 Recast로 렌더링 (RecastDemo에서 불러와서 렌더링)
 3) Build 버튼을 눌러 네비게이션 메쉬 생성 후 .bin 파일로 추출
 4) 서버에서 .bin 파일을 읽어 네비게이션 메쉬를 로드한 후 detour 라이브러리로 길 찾기 수행 <br/>
 
