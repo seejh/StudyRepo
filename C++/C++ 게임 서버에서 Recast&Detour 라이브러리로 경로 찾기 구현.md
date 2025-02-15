@@ -59,9 +59,13 @@ https://yunus-lab.tistory.com/13  - 샘플 사용 내용<br/>
 위의 수순 보다 더 간단하게 하려면 언리얼에서 네비 메쉬 자체를 뽑아서 .bin 파일로 담아 서버로 들고와서 detour를 수행<br/>
 
 # Unreal에서 네비 메쉬 추출
-언리얼 엔진에 플러그인을 추가 <br/>
-언리얼4.27 버전을 쓰기에 아래 경로에서 외부 라이브러리를 다운 받아 플러그인으로 추가한다. <br/>
+언리얼 엔진에 네비게이션 메쉬 추출 플러그인을 추가 <br/>
+본인은 언리얼4.27 버전을 쓰기에 아래 경로에서 외부 라이브러리를 다운 받아 플러그인으로 추가한다. <br/>
 https://github.com/hxhb/ue4-export-nav-data <br/>
+![image](https://github.com/user-attachments/assets/89267a26-9712-4108-85d6-ce44e74fc8ac) <br/>
+추가하면 위와 같이 되며 Export Nav를 누르면 원하는 경로에 파일로 추출한다. <br/>
+![image](https://github.com/user-attachments/assets/d761617d-9d73-4a68-9010-2ae4fbcee7b6) <br/>
+
 
 
 
