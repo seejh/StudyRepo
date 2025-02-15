@@ -13,21 +13,12 @@ Detour는 Recast가 생성한 네비게이션 메시를 기반으로 경로를 �
 실시간으로 경로를 찾으며, 장애물 회피 기능도 지원한다.<br/> 
 Detour는 목표 지점까지의 최적 경로를 계산, 경로가 변경되거나 장애물이 나타났을 때 즉시 경로를 재계산한다.<br/>
 
-# 프로젝트에 통합
-본인은 vcpkg를 통해 설치함
 
-# 프로젝트에 통합 후 시작
-~~~c++
-#include"Recast.h"
-#include"DetourNavMesh.h"
-#include"DetourNavMeshQuery.h"
-~~~
-Recast & Detour가 프로젝트에 성공적으로 통합됨. 이후부터는 네비게이션 메시 생성, 경로 찾기 기능 구현
 
 # 출처
-https://ko.ittrip.xyz/c-plus-plus/cpp-game-server-recast-detour-pathfinding
-https://github.com/recastnavigation/recastnavigation
-
+https://ko.ittrip.xyz/c-plus-plus/cpp-game-server-recast-detour-pathfinding - 설명<br/>
+https://github.com/recastnavigation/recastnavigation - RecastNavigation 라이브러리 <br/>
+https://www.slideshare.net/MUUMUMUMU/recast-detourpptx#33 - 슬라이드 쉐어<br/>
 <br/><br/><br/><br/><br/><br/>
 
 <hr/>
@@ -35,32 +26,47 @@ https://github.com/recastnavigation/recastnavigation
 # Recast Navigation 샘플 데모 사용(일단 여기다 정리, 추후 수정 필요)
 
 # 설치
-https://github.com/recastnavigation/recastnavigation/tree/main 에서 RecastNavigation 다운 후 압축 해제<br/>
-솔루션 파일 생성을 해야 하는데 선행 되어야 할 것들이 있다.
+https://github.com/recastnavigation/recastnavigation/tree/main 경로에서 RecastNavigation을 직접 다운 후 압축 해제<br/>
 
 #### SDL(Simple Directmedia Layer) 라이브러리 설치
-2점 대 버전을 설치해야 한다.(ex SDL-2.x) <br/>
-https://github.com/libsdl-org/SDL/releases/tag/release-2.30.7 에서 SDL 다운로드 <br/>
+2점 대 버전을 설치해야 한다.(ex https://github.com/libsdl-org/SDL/releases/tag/release-2.30.7) <br/>
 ![image](https://github.com/user-attachments/assets/724c24e9-6de1-40ce-8950-e82ed4068388)<br/>
-다운 후 RecastDemo/Contrib 에 압축 해제<br/>
-설치된 SDL-버전 형식의 폴더명을 SDL로 변경해준다. (변경 후 파일 계층 상황 = RecastDemo/Contrib/SDL/)<br/>
+다운 후 RecastDemo/Contrib 에 압축 해제, 설치된 "SDL-버전" 형식으로 되어 있는 폴더명을 SDL로 변경(/RecastDemo/Contrib/SDL/)<br/>
 
 #### premake로 솔루션 파일 생성
 https://premake.github.io/ 에서 premake를 다운 후 RecastDemo 폴더에 압축 해제 (premake5.exe 실행 파일 하나)<br/>
 Path 환경 변수에 등록, CMD 상에서 아래와 같은 형식으로 명령을 입력한다.<br/>
 ![image](https://github.com/user-attachments/assets/425a0a1d-767f-40e3-aa65-d78dae31da3e)<br/>
-해당 명령 실행 후 RecastNavigation의 솔루션 파일이 생긴다. (RecastDemo/Build/vs2022/ 경로에 생성됨)<br/>
+해당 명령 실행 후 RecastDemo의 솔루션 파일 생성 (RecastDemo/Build/vs2022/ 경로에 생성)<br/>
 해당 파일을 비주얼 스튜디오로 실행 -> RecastDemo를 시작 프로젝트로 설정 -> 빌드 -> 실행<br/>
 
-# 시행 착오
-위의 내용에서 SDL을 3.대 버전으로 사용했더니 빌드시에 아래와 같은 문제가 생김
-![image](https://github.com/user-attachments/assets/ce1c0433-28b6-4d8f-a703-a12637fc2cbd)<br/>
-3버전 제거 후 2버전으로  -> OK
-
 # 사용
-
-
+Sample_SoloMesh.cpp, NavMeshTestTool.cpp 이 두 파일 위주로 보면서 학습하는 것이 좋다.<br/>
+자세한 설명은 아래 링크 참고<br/>
 
 출처 : <br/>
 https://yunus-lab.tistory.com/13  - 샘플 사용 내용<br/>
+<br/><br/><br/><br/><br/><br/>
+
+<hr/>
+
+# RecastNavigation C++ 게임 서버에서 사용(Unreal, C++ 게임 서버)
+#### 수순
+1) Unity, Unreal에서 맵 정보를 .obj 파일로 추출
+2) .obj 파일을 Recast로 렌더링
+3) Build 버튼을 눌러 네비게이션 메쉬 생성 후 .bin 파일로 추출
+4) 서버에서 .bin 파일을 읽어 네비게이션 메쉬를 로드한 후 detour 라이브러리로 길 찾기 수행
+위의 수순 보다 더 간단하게 하려면 언리얼에서 네비 메쉬 자체를 뽑아서 .bin 파일로 담아 서버로 들고와서 detour를 수행<br/>
+
+# Unreal에서 네비 메쉬 추출
+언리얼 엔진에 플러그인을 추가 <br/>
+언리얼4 - https://github.com/hxhb/ue4-export-nav-data <br/>
+언리얼5 - https://github.com/luyuancpp/Ue5ExportNavData <br/>
+
+
+# 출처
+https://blog.naver.com/PostView.naver?blogId=jokorat&logNo=223422345504 - <br/>
+
+
+<hr/>
 
