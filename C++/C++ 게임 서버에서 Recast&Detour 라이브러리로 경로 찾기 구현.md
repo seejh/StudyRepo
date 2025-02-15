@@ -16,9 +16,9 @@ Detour는 목표 지점까지의 최적 경로를 계산, 경로가 변경되거
 
 
 # 출처
-https://ko.ittrip.xyz/c-plus-plus/cpp-game-server-recast-detour-pathfinding - 설명<br/>
+https://ko.ittrip.xyz/c-plus-plus/cpp-game-server-recast-detour-pathfinding - 설명 <br/>
 https://github.com/recastnavigation/recastnavigation - RecastNavigation 라이브러리 <br/>
-https://www.slideshare.net/MUUMUMUMU/recast-detourpptx#33 - 슬라이드 쉐어<br/>
+https://www.slideshare.net/MUUMUMUMU/recast-detourpptx#33 - 설명 <br/>
 <br/><br/><br/><br/><br/><br/>
 
 <hr/>
