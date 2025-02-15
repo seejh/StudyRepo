@@ -55,7 +55,8 @@ https://yunus-lab.tistory.com/13  - 샘플 사용 내용<br/>
 1) Unity, Unreal에서 맵 정보를 .obj 파일로 추출
 2) .obj 파일을 Recast로 렌더링
 3) Build 버튼을 눌러 네비게이션 메쉬 생성 후 .bin 파일로 추출
-4) 서버에서 .bin 파일을 읽어 네비게이션 메쉬를 로드한 후 detour 라이브러리로 길 찾기 수행
+4) 서버에서 .bin 파일을 읽어 네비게이션 메쉬를 로드한 후 detour 라이브러리로 길 찾기 수행 <br/>
+
 위의 수순 보다 더 간단하게 하려면 언리얼에서 네비 메쉬 자체를 뽑아서 .bin 파일로 담아 서버로 들고와서 detour를 수행<br/>
 
 # Unreal에서 네비 메쉬 추출
@@ -63,7 +64,7 @@ https://yunus-lab.tistory.com/13  - 샘플 사용 내용<br/>
 본인은 언리얼4.27 버전을 쓰기에 아래 경로에서 외부 라이브러리를 다운 받아 플러그인으로 추가한다. <br/>
 https://github.com/hxhb/ue4-export-nav-data <br/>
 ![image](https://github.com/user-attachments/assets/89267a26-9712-4108-85d6-ce44e74fc8ac) <br/>
-추가하면 위와 같이 되며 Export Nav를 누르면 원하는 경로에 파일로 추출한다. <br/>
+추가하면 위와 같이 되며 Export Nav를 누르면 원하는 경로에 아래와 같이 파일로 추출한다. <br/>
 ![image](https://github.com/user-attachments/assets/d761617d-9d73-4a68-9010-2ae4fbcee7b6) <br/>
 
 
