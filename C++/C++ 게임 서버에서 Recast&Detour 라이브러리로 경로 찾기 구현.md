@@ -60,8 +60,9 @@ https://yunus-lab.tistory.com/13  - 샘플 사용 내용<br/>
 
 # Unreal에서 네비 메쉬 추출
 언리얼 엔진에 플러그인을 추가 <br/>
-언리얼4 - https://github.com/hxhb/ue4-export-nav-data <br/>
-언리얼5 - https://github.com/luyuancpp/Ue5ExportNavData <br/>
+언리얼4.27 버전을 쓰기에 아래 경로에서 외부 라이브러리를 다운 받아 플러그인으로 추가한다. <br/>
+https://github.com/hxhb/ue4-export-nav-data <br/>
+
 
 
 # 출처
