@@ -5,6 +5,7 @@
 특정 코드 조각을 구분하고 강조하기 위해 사용하는 방법 <br/>
 (~~~) 사이에 코드를 집어 넣으면 되고 특정 언어를 명시할 수 있다. <br/>
 
+##### 코드블럭 예시 <br/>
 ```c++
 #include <iostream>
 
@@ -13,6 +14,7 @@ int main() {
 }
 ```
 
+##### 코드블록 예시 코드 <br/>
 ```
 ~~~c++
 #include <iostream>
@@ -40,7 +42,7 @@ int main() {
 </tr>
 </table>
 
-
+##### 테이블 생성 예시 <br/>
 <table>
   <tr>
     <th>행1 열1 헤더</th>
@@ -55,6 +57,7 @@ int main() {
   </tr>
 </table>
 
+##### 테이블 생성 예시 코드 <br/>
 ```html
 <table>
 <tr>
@@ -73,11 +76,13 @@ int main() {
 ```
 
 ### 크기 조절 (width, height)
+##### 테이블 크기 조절 예시 <br/>
 <table width="300" height="80">
 <td width="250" height="60">width:250, height:60</td>
 <td width="150" height="30">width:150, height:30</td>
 </table>
 
+##### 테이블 크기 조절 코드 <br/>
 ```html
 <table width="300" height="80">
 <td width="250" height="60">width:250, height:60</td>
@@ -86,26 +91,31 @@ int main() {
 ```
 
 ### 정렬
-1) 가로 정렬 (align - left, right, center)
+##### 가로 정렬 (align - left, right, center)
+
+##### 정렬(가로) 예시
 <table>
 <td width="150" align="left">좌측</td>
 <td width="150" align="center">중앙</td>
 <td width="150" align="right">우측</td>
 </table>
 
+##### 정렬(가로) 예시 코드
 ~~~html
 <td align="left">좌측</td>
 <td align="center">중앙</td>
 <td align="right">우측</td>
 ~~~
 
-2) 세로 정렬 (valign - top, bottom)
+##### 세로 정렬 (valign - top, bottom)
+##### 정렬(세로) 예시
 <table>
 <td height="100" valign="top">위</td>
 <td valign="middle">중앙</td>
 <td valign="bottom">아래</td>
 </table>
 
+##### 정렬(세로) 예시 코드
 ```html
 <td align="top">위</td>
 <td align="middle">중앙</td>
@@ -117,6 +127,7 @@ int main() {
 
 # 이미지
 
+### 이미지 예시 코드 <br/>
 ```html
 <img src="이미지 url" width="" height="" />
 ```
