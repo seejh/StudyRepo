@@ -53,5 +53,22 @@ int main() {
 }
 ```
 
+예제3) 
+```c++
+#include<iostream>
+#include<map>
+#include<typeindex>
+
+int main() {
+  map<type_index, string> m =
+  {
+    { typeid(int), "int" }, { typeid(double), "double" }
+  };
+
+  cout << m[typeid(int)] << endl; // 출력 : int
+}
+```
+
+
 출처 : <br/>
 https://jacking75.github.io/C++11_typeInfo_typeIndex/
