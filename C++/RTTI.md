@@ -22,7 +22,7 @@ int main() {
 #include<iostream>
 #include<typeinfo>
 
-struct Base { // Base가 되는 클래스에서 가상 함수가 없으면 구분을 못함
+struct Base { // 부모 클래스에 가상함수가 있으면 구분가능 (= 가상함수가 있어야 구분이 가능하다.)
   virtual void p() {}
 };
 struct Cat : Base {};
