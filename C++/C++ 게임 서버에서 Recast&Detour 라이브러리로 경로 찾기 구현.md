@@ -76,3 +76,15 @@ https://blog.naver.com/PostView.naver?blogId=jokorat&logNo=223422345504 - <br/>
 
 <hr/>
 
+
+네비메시 추출 시 맵 크기 단위에 대한 내용 <br/>
+https://github.com/recastnavigation/recastnavigation/issues/270 <br/>
+
+언리얼의 좌표와 리캐스트 네비게이션의 좌표에 대한 내용 <br/>
+https://github.com/hxhb/ue4-recast-detour/blob/master/ue4-findpath.cpp <br/>
+https://en.imzlp.com/posts/20203/ <br/>
+https://github.com/hxhb/ue4-recast-detour/blob/master/UE4RecastHelper.cpp#L326 <br/>
+
+리캐스트 네비게이션 매뉴얼 <br/>
+https://rwindegger.github.io/recastnavigation/classdtNavMeshQuery.html#ac42040cc55792543570e6078e524e7a9 <br/>
+https://recastnav.com/classdtQueryFilter.html <br/>
