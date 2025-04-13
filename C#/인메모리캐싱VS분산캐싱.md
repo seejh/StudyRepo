@@ -106,6 +106,7 @@ DB에 대한 왕복 횟수를 줄이고 캐시에서 데이터를 제공함으�
 여러 서버 또는 위치에 배포되고 캐시된 데이터에 대한 일관된 보기가 필요한 마이크로서비스 아키텍처 또는 앱에 적합하다. <br/>
 서버를 재기동하는 등 서버 메모리가 소실되는 상황에서도 캐시 데이터를 지속할 필요가 있는 앱에 필요하다 <br/>
 
+<br/><br/>
 출처 : <br/>
 https://dotnettutorials.net/lesson/difference-between-in-memory-caching-and-distributed-caching-in-asp-netcore/ <br/>
 
