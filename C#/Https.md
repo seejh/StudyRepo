@@ -32,3 +32,19 @@ HTTPS에서는 이러한 제 3자가 웹 콘텐츠에 광고를 삽입하는 기
 HTTPS는 특정 공급자가 주장하는 실체가 맞는지 확인하는 TLS/SSL 인증서의 전송을 기반으로 이루어진다. <br/>
 사용자가 웹페이지에 연결하면 웹페이지에서 보안 세션을 시작하는데 필요한 공개키가 포함된 SSL 인증서를 전송한다. <br/>
 그런 다음 클라이언트와 서버가 보안 연결을 설정하기 위해 SSL/TLS 핸드셰이크라는 프로세스를 거친다. <br/>
+
+출처 : <br/>
+
+<br/>
+<hr/>
+
+
+
+
+<hr/>
+
+# ASP.NET RequiredHttpsAttribute
+출처 : <br/>
+https://recaffeinate.co/post/enforce-https-aspnetcore-api/ <br/>
+<hr/>
+
