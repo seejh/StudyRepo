@@ -1,14 +1,19 @@
-# 레디스 설치 및 레디스 서버 구동
-TODO
+# 예제 설명
+ASP.NET Core에서 레디스를 캐시로 사용하는 경우에 대한 예제 <br/>
+레디스 연결 방법 및 사용 방법 설명 <br/>
+추가로 캐시 용도로서의 기본 사용법 설명 <br/>
 
-# ASP.NET Core Redis
-## 설치 패키지
+# 레디스 서버 프로그램 설치 및 레디스 서버 구동
+TODO <br/>
+대충 레디스 프로그램 깔고 서버 실행 <br/>
+
+# ASP.NET Core에서 Redis
+## 패키지 설치
 Microsoft.EntityFrameworkCore.SqlServer - MSSQL 사용 (Redis를 캐시로 사용한다면) <br/>
 Microsoft.EntityFrameworkCore.Tools - EF Core 사용 <br/>
 Microsoft.Extensions.Caching.StackExchangeRedis - 레디스 사용 <br/>
 
-## 코드
-### 데이터베이스 모델 및 DbContext 정의
+## 데이터베이스 모델 및 DbContext 정의
 루트 디렉토리에 Models 폴더를 생성 후 Product.cs 파일 생성 및 코드 기입 <br/>
 루트 디렉토리에 Data라는 폴더를 만든 후 ApplicationDbContext.cs 파일 생성 및 코드 기입 <br/>
 여러 예제를 봐왔지만 폴더명칭과 나누는 것은 조금 더 고려할 필요가 있어보임 <br/><br/>
@@ -73,7 +78,7 @@ namespace RedisCachingDemo.Data
 }
 ```
 
-### 레디스 연결
+## 레디스 연결
 appsettings.json 파일 수정 <br/>
 ```json
 {
@@ -129,7 +134,8 @@ namespace RedisCachingDemo
                 options.InstanceName = builder.Configuration["RedisCacheOptions:InstanceName"];
             });
 
-            // 
+            // 확실하지 않은 내용
+            // 레디스
             builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
                 ConnectionMultiplexer.Connect(builder.Configuration["RedisCacheOptions:Configuration"]));
 
@@ -148,10 +154,10 @@ namespace RedisCachingDemo
 }
 ```
 
-### 레디스 사용
+## 레디스 사용
 Program.cs 클래스에서 레디스 연결 구성을 완료하고 난 뒤, IDistributedCache 서비스 인스턴스를 컨트롤러 또는 서비스에 삽입하여
 Redis를 사용할 수 있다. <br/>
-#### SetStringAsync
+### 레디스에 삽입 - SetStringAsync
 선택적 캐싱 옵션(예, 만료 정책)에 따라 키와 해당하는 값을 레디스에 저장한다. <br/>
 해당 키가 존재하는 경우 새 값으로 업데이트 된다. <br>
 예시 코드 <br/>
@@ -177,14 +183,39 @@ var cacheOptions = new DistributedCacheEntryOptions
 await _cache.SetStringAsync("SomeCacheKey", serializedData, cacheOptions);
 ```
 
-#### GetStringAsync
-#### RemoveAsync
+### 레디스에서 탐색 - GetStringAsync
+매개 변수로 전달된 키값에 해당하는 값(문자열로 표현)을 검색한다. <br/>
+예시 코드 <br/>
+```c#
+// 레디스에 검색 (비동기)
+var cachedData = await _cache.GetStringAsync("SomeCacheKey");
 
+// 결과 조회
+if (!string.IsNullOrEmpty(cachedData)) {
+    // Cache Hit
+    // 역직렬화 후 데이터 사용
+}
+else {
+    // Cache Miss
+    // DB에서 데이터를 찾고 추후 요청을 대비해 레디스에 캐싱한다.
+}
+```
+
+### 레디스에서 제거 - RemoveAsync
+지정한 키에 해당하는 항목을 삭제한다. <br/>
+예시 코드 <br/>
+```c#
+// 레디스에서 키에 해당하는 데이터 삭제(비동기) <br/>
+await _cache.RemoveAsync("SomeCacheKey");
+```
 
 출처 : <br/>
 https://dotnettutorials.net/lesson/how-to-implement-redis-cache-in-asp-net-core-web-api/#google_vignette <br/>
-<hr/>
+<hr/><br/><br/>
 
 # RedisExchange 설명
 https://stackexchange.github.io/StackExchange.Redis/Basics.html <br/>
+
+# 레디스 연결하는 방법 분석
+https://m.blog.naver.com/bluekms21/222640006011 <br/>
 <hr/>
