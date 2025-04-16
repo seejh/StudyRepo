@@ -209,6 +209,203 @@ else {
 await _cache.RemoveAsync("SomeCacheKey");
 ```
 
+### 레디스 사용 예제
+```c#
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using RedisCachingDemo.Data;
+using RedisCachingDemo.Models;
+using System.Text.Json;
+
+namespace RedisCachingDemo.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ProductsController : ControllerBase
+    {
+        // 생성자에서 ApplicationDbContext와 IDistributedCache 삽입
+        private readonly ApplicationDbContext _context;
+        private readonly IDistributedCache _cache;
+        public ProductsController(ApplicationDbContext context, IDistributedCache cache)
+        {
+            _context = context;
+            _cache = cache;
+        }
+
+        // 모든 제품 검색
+        // GET: api/products/all
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAll()
+        {
+            var cacheKey = "GET_ALL_PRODUCTS";
+            List<Product> products;
+            try
+            {
+                // 레디스 캐시에서 검색
+                var cachedData = await _cache.GetStringAsync(cacheKey);
+                if (!string.IsNullOrEmpty(cachedData))
+                {
+                    // 캐시 히트, 역직렬화
+                    products = JsonSerializer.Deserialize<List<Product>>(cachedData) ?? new List<Product>();
+                }
+                else
+                {
+                    // 캐시 미스, DB에서 검색
+                    products = await _context.Products.AsNoTracking().ToListAsync();
+                    if (products != null)
+                    {
+                        // 데이터 직렬화 -> 캐시 옵션 지정 -> 레디스에 삽입
+                        var serializedData = JsonSerializer.Serialize(products);
+                        var cacheOptions = new DistributedCacheEntryOptions()
+                            .SetSlidingExpiration(TimeSpan.FromMinutes(5));
+                        await _cache.SetStringAsync(cacheKey, serializedData, cacheOptions);
+                    }
+                }
+
+                // 제품 목록을 담아서 200 OK 응답
+                return Ok(products);
+            }
+            catch (Exception ex)
+            {
+                // 500 에러 응답
+                return StatusCode(500, new {
+                    message = "An error occurred while retrieving products.", details = ex.Message
+                });
+            }
+        }
+
+        // 제품 카테고리 검색
+        // GET: api/products/Category?Category=Fruits
+        [HttpGet("Category")]
+        public async Task<IActionResult> GetProductByCategory(string Category)
+        {
+            // 
+            var cacheKey = $"PRODUCTS_{Category}";
+            List<Product> products;
+            try {
+                // 레디스 캐시에서 검색
+                var cachedData = await _cache.GetStringAsync(cacheKey);
+                if (!string.IsNullOrEmpty(cachedData))
+                {
+                    // 캐시 히트, 역직렬화
+                    products = JsonSerializer.Deserialize<List<Product>>(cachedData) ?? new List<Product>();
+                }
+                else
+                {
+                    // 캐시 미스, DB에서 검색
+                    products = await _context.Products
+                        .Where(prd => prd.Category.ToLower() == Category.ToLower())
+                        .AsNoTracking()
+                        .ToListAsync();
+                    if (products != null)
+                    {
+                        // 레디스 캐시에 저장
+                        var serializedData = JsonSerializer.Serialize(products);
+                        var cacheOptions = new DistributedCacheEntryOptions()
+                            .SetAbsoluteExpiration(TimeSpan.FromMinutes(5));
+                        await _cache.SetStringAsync(cacheKey, serializedData, cacheOptions);
+                    }
+                }
+                // 제품 포함, 200 응답 리턴
+                return Ok(products);
+            } catch (Exception ex) {}
+        }
+
+        // 제품 조회
+        // GET: api/products/{id}
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetProduct(int id)
+        {
+            // 
+            var cacheKey = $"Product_{id}";
+            Product? product;
+            try {
+                // 레디스 캐시에서 검색
+                var cachedData = await _cache.GetStringAsync(cacheKey);
+                if (!string.IsNullOrEmpty(cachedData))
+                {
+                    // 캐시 히트, 역직렬화
+                    product = JsonSerializer.Deserialize<Product>(cachedData) ?? new Product();
+                }
+                else
+                {
+                    // 캐시 미스, DB에서 검색
+                    product = await _context.Products.FindAsync(id);
+                    if (product == null)
+                        return NotFound($"Product with ID {id} not found.");
+
+                    // 레디스 캐시에 저장
+                    var serializedData = JsonSerializer.Serialize(product);
+                    await _cache.SetStringAsync(cacheKey, serializedData, new DistributedCacheEntryOptions
+                    {
+                        SlidingExpiration = TimeSpan.FromMinutes(5)
+                    });
+                }
+
+                // 제품과 200 응답
+                return Ok(product);
+            } catch (Exception ex) {}
+        }
+
+        // 제품 추가 
+        // PUT: api/products/{id}
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateProduct(int id, [FromBody] Product updatedProduct)
+        {
+            if (id != updatedProduct.Id) { return BadRequest("Product ID mismatch."); }
+
+            try {
+                // DB에서 해당 제품 검색
+                var existingProduct = await _context.Products.FindAsync(id);
+                if (existingProduct == null)
+                    return NotFound($"Product with ID {id} not found.");
+
+                // DB 데이터 변경
+                _context.Entry(existingProduct).CurrentValues.SetValues(updatedProduct);
+                await _context.SaveChangesAsync();
+
+                // 캐시에 삽입
+                var cacheKey = $"Product_{id}";
+                var serializedData = JsonSerializer.Serialize(updatedProduct);
+                await _cache.SetStringAsync(cacheKey, serializedData, new DistributedCacheEntryOptions
+                {
+                    SlidingExpiration = TimeSpan.FromMinutes(5)
+                });
+
+                // OK 응답
+                return Ok();
+            }
+            catch (Exception ex) {}
+        }
+
+        // 특정 제품 삭제
+        // DELETE: api/products/{id}
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProduct(int id)
+        {
+            try {
+                // DB에서 제품 탐색
+                var product = await _context.Products.FindAsync(id);
+                if (product == null)
+                    return NotFound($"Product with ID {id} not found.");
+
+                // DB에서 삭제
+                _context.Products.Remove(product);
+                await _context.SaveChangesAsync();
+
+                // 캐시에서도 제거
+                var cacheKey = $"Product_{id}";
+                await _cache.RemoveAsync(cacheKey);
+
+                // OK 응답
+                return Ok();
+            } catch (Exception ex) {}
+        }
+    }
+}
+```
+
 출처 : <br/>
 https://dotnettutorials.net/lesson/how-to-implement-redis-cache-in-asp-net-core-web-api/#google_vignette <br/>
 <hr/><br/><br/>
