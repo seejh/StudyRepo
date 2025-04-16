@@ -406,6 +406,135 @@ namespace RedisCachingDemo.Controllers
 }
 ```
 
+### 고급 기법
+```c#
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Distributed;
+using StackExchange.Redis;
+namespace RedisCachingDemo.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class RedisCacheController : ControllerBase
+    {
+        // Dependency for interacting with Redis via IDistributedCache
+        private readonly IDistributedCache _distributedCache;
+        // Dependency for interacting directly with Redis Server 
+        private readonly IConnectionMultiplexer _redisConnection;
+        // Dependency for interacting with the configuration files like appsettings.json file
+        private readonly IConfiguration _configuration;
+        // Inject IDistributedCache, IConnectionMultiplexer, and IConfiguration
+        public RedisCacheController(IDistributedCache distributedCache, IConnectionMultiplexer redisConnection, IConfiguration configuration)
+        {
+            _distributedCache = distributedCache;
+            _redisConnection = redisConnection;
+            _configuration = configuration;
+        }
+
+        
+        // GET: api/RedisCache/all
+        // Retrieve all keys and their values from the Redis cache
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllCachedKeysAndValues()
+        {
+            try
+            {
+                // Get the first available Redis server from the connection multiplexer
+                var server = _redisConnection.GetServer(_redisConnection.GetEndPoints().First());
+                // Retrieve all keys from Redis
+                var keys = server.Keys().ToArray();
+                // Read the instance name prefix from configuration
+                string instanceName = _configuration["RedisCacheOptions:InstanceName"] ?? string.Empty;
+                // Initialize a list to store key-value pairs from the cache
+                var cacheEntries = new List<KeyValuePair<string, string>>();
+                // Loop through each key, remove the instance prefix and fetch the cached value
+                foreach (var key in keys)
+                {
+                    // Remove the instance name prefix if it exists
+                    var keyWithoutPrefix = key.ToString().Replace($"{instanceName}", "");
+                    // Get the value associated with the key from the distributed cache
+                    var value = await _distributedCache.GetStringAsync(keyWithoutPrefix);
+                    // Add the key-value pair to the list; if value is null, set it to "null"
+                    cacheEntries.Add(new KeyValuePair<string, string>(keyWithoutPrefix, value ?? "null"));
+                }
+                // Return the list of key-value pairs as a JSON response
+                return Ok(cacheEntries);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to retrieve cache entries.", error = ex.Message });
+            }
+        }
+        // GET: api/RedisCache/{key}
+        // Retrieve a specific cache entry by key
+        [HttpGet("{key}")]
+        public async Task<IActionResult> GetCacheEntryByKey(string key)
+        {
+            try
+            {
+                // Attempt to retrieve the value associated with the provided key asynchronously
+                var value = await _distributedCache.GetStringAsync(key);
+                // If the key is not found in the cache, return a 404 Not Found response
+                if (value == null)
+                {
+                    return NotFound(new { message = "Cache entry not found." });
+                }
+                // Return the key-value pair as a JSON response
+                return Ok(new { Key = key, Value = value });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to retrieve cache entry.", error = ex.Message });
+            }
+        }
+        // DELETE: api/RedisCache/all
+        // Clear all cache entries
+        [HttpDelete("all")]
+        public IActionResult ClearAllCacheEntries()
+        {
+            try
+            {
+                // Get the first Redis server instance from the connection multiplexer
+                var server = _redisConnection.GetServer(_redisConnection.GetEndPoints().First());
+                // Iterate over all keys in the Redis database
+                foreach (var key in server.Keys())
+                {
+                    // Get the InstanceName from the configuration (as specified in appsettings.json)
+                    string instanceName = _configuration["RedisCacheOptions:InstanceName"] ?? string.Empty;
+                    // Remove the instance name prefix if it exists
+                    var keyWithoutPrefix = key.ToString().Replace($"{instanceName}", "");
+                    // Remove each key-value pair from the distributed cache
+                    _distributedCache.Remove(keyWithoutPrefix);
+                }
+                // Return a success message
+                return Ok(new { message = "All cache entries cleared." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to clear cache entries.", error = ex.Message });
+            }
+        }
+        // DELETE: api/RedisCache/{key}
+        // Clear a specific cache entry by key
+        [HttpDelete("{key}")]
+        public async Task<IActionResult> ClearCacheEntryByKey(string key)
+        {
+            try
+            {
+                // Remove the cache entry associated with the provided key asynchronously
+                await _distributedCache.RemoveAsync(key);
+                // Return a success message indicating the specific cache entry was cleared
+                return Ok(new { message = $"Cache entry '{key}' cleared." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to clear cache entry.", error = ex.Message });
+            }
+        }
+    }
+}
+```
+
 출처 : <br/>
 https://dotnettutorials.net/lesson/how-to-implement-redis-cache-in-asp-net-core-web-api/#google_vignette <br/>
 <hr/><br/><br/>
