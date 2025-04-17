@@ -1,7 +1,306 @@
 
 # JWT
 
-컨트롤러 <br/>
+## 데이터 전송 객체(DTO) 생성
+DTO(Data Transfer Objects)는 클라이언트와 서버 간에 전송되는 데이터를 캡슐화하는데 사용되어 필요한 정보만 노출되도록 한다. <br/>
+
+### RegisterDTO
+사용자 등록에 필요한 정보를 캡쳐 <br/>
+```c#
+using System.ComponentModel.DataAnnotations;
+namespace JWTAuthServer.DTOs
+{
+    public class RegisterDTO
+    {
+        [Required(ErrorMessage = "First name is required.")]
+        [MaxLength(50, ErrorMessage = "First name must be less than or equal to 50 characters.")]
+        public string Firstname { get; set; }
+        [MaxLength(50, ErrorMessage = "Last name must be less than or equal to 50 characters.")]
+        public string Lastname { get; set; }
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Invalid email address.")]
+        [MaxLength(100, ErrorMessage = "Email must be less than or equal to 100 characters.")]
+        public string Email { get; set; }
+        [Required(ErrorMessage = "Password is required.")]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters long.")]
+        [MaxLength(100, ErrorMessage = "Password must be less than or equal to 100 characters.")]
+        public string Password { get; set; }
+    }
+}
+```
+
+### LoginDTO
+클라이언트가 토큰을 요청하려고 할 때 사용하는 클라이언트 자격(토큰을 요청하는 애플리케이션을 알 수 있도록) 증명, <br/>
+사용자 자격 증명(어떤 사용자가 로그인하는지 알 수 있도록) 양식 <br/>
+
+```c#
+using System.ComponentModel.DataAnnotations;
+namespace JWTAuthServer.DTOs
+{
+    public class LoginDTO
+    {
+        // Email input from the user during login.
+        [EmailAddress]
+        [Required(ErrorMessage = "Email is required.")]
+        [MaxLength(100, ErrorMessage = "Email must be less than or equal to 100 characters.")]
+        public string Email { get; set; }
+        // Password input from the user during login.
+        [Required(ErrorMessage = "Password is required.")]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters long.")]
+        [MaxLength(100, ErrorMessage = "Password must be less than or equal to 100 characters.")]
+        public string Password { get; set; }
+        [Required(ErrorMessage = "ClientId is required.")]
+        public string ClientId { get; set; }
+    }
+}
+```
+## 서비스(백그라운드)
+ASP.NET Core의 백그라운드 서비스는 들어오는 HTTP 요청과 독립적으로 백그라운드에서 작업을 실행하는 장기 실행 서비스이다 <br/>
+BackgroundService 기본 클래스를 상속 받는 클래스를 만들거나 IHostedService 인터페이스를 사용하여 구현한다. <br/>
+
+### KeyRotationService
+주기적으로 새 RSA 키 쌍을 생성하고 이전 키 쌍을 비활성화하여 보안을 강화하는 백그라운드 서비스 <br/>
+```c#
+using JWTAuthServer.Data;
+using JWTAuthServer.Models;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+
+namespace JWTAuthServer.Services
+{
+    public class KeyRotationService : BackgroundService
+    {
+        // Service provider is used to create a scoped service lifetime.
+        private readonly IServiceProvider _serviceProvider; // 
+        private readonly TimeSpan _rotationInterval = TimeSpan.FromDays(7); // 키 변경 주기, 여기선 일주일 단위
+        public KeyRotationService(IServiceProvider serviceProvider) {
+            _serviceProvider = serviceProvider;
+        }
+
+        // 백그라운드 서비스가 시작될 때 실행
+        // 이 백그라운드 서비스의 작업 로직이 상주하는 핵심 메서드, BackgroundService 기본 클래스의 재정의 메서드
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            // 일반적으로 ExecuteAsync에는 무기한 루프가 있으며(프로그램 정지시까지)
+            // 팽ㅍ챙한 루프를 방지하기 위해 중간에 지연을 두고 수행한다.
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                // 일정 간격으로 키 변경 로직 수행
+                await RotateKeysAsync();
+                await Task.Delay(_rotationInterval, stoppingToken);
+            }
+        }
+
+        // 키 변경 로직
+        private async Task RotateKeysAsync()
+        {
+            // Create a new service scope for dependency injection.
+            using var scope = _serviceProvider.CreateScope();
+
+            // 서비스 공급자로부터 DbContext를 가져온다
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            // DB에서 현재 활성 상태인 서명키를 검색한다.
+            var activeKey = await context.SigningKeys.FirstOrDefaultAsync(k => k.IsActive);
+
+            // 활성된 키가 없거나 곧 만료되는지 확인
+            if (activeKey == null || activeKey.ExpiresAt <= DateTime.UtcNow.AddDays(10))
+            {
+                // 활성키가 있으면 비활성으로 변경
+                if (activeKey != null)
+                {
+                    activeKey.IsActive = false;
+                    context.SigningKeys.Update(activeKey);
+                }
+
+                // 새 RSA 키 쌍 생성
+                using var rsa = RSA.Create(2048);
+
+                // 개인키, 공개키를 Base64로 인코딩된 문자열로 추출
+                var privateKey = Convert.ToBase64String(rsa.ExportRSAPrivateKey());
+                var publicKey = Convert.ToBase64String(rsa.ExportRSAPublicKey());
+
+                // 새 키에 대한 고유 식별자 생성
+                var newKeyId = Guid.NewGuid().ToString();
+
+                // 새 RSA 키 세부 정보를 사용하여 새 서명키엔티티 생성
+                var newKey = new SigningKey
+                {
+                    KeyId = newKeyId,
+                    PrivateKey = privateKey,
+                    PublicKey = publicKey,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    ExpiresAt = DateTime.UtcNow.AddYears(1)
+                };
+
+                // DB에 새로운 서명키 추가
+                await context.SigningKeys.AddAsync(newKey);
+                await context.SaveChangesAsync();
+            }
+        }
+    }
+}
+```
+
+## 컨트롤러
+### 사용자 컨트롤러
+```c#
+using JWTAuthServer.Data;
+using JWTAuthServer.DTOs;
+using JWTAuthServer.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+namespace JWTAuthServer.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class UsersController : ControllerBase
+    {
+        private readonly ApplicationDbContext _context;
+        // Constructor injecting the ApplicationDbContext
+        public UsersController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+        // Registers a new user.
+        [HttpPost("Register")]
+        public async Task<IActionResult> Register([FromBody] RegisterDTO registerDto)
+        {
+            // Validate the incoming model.
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            // Check if the email already exists.
+            var existingUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == registerDto.Email.ToLower());
+            if (existingUser != null)
+            {
+                return Conflict(new { message = "Email is already registered." });
+            }
+            // Hash the password using BCrypt.
+            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
+            // Create a new user entity.
+            var newUser = new User
+            {
+                Firstname = registerDto.Firstname,
+                Lastname = registerDto.Lastname,
+                Email = registerDto.Email,
+                Password = hashedPassword
+            };
+            // Add the new user to the database.
+            _context.Users.Add(newUser);
+            await _context.SaveChangesAsync();
+            // Optionally, assign a default role to the new user.
+            // For example, assign the "User" role.
+            var userRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "User");
+            if (userRole != null)
+            {
+                var newUserRole = new UserRole
+                {
+                    UserId = newUser.Id,
+                    RoleId = userRole.Id
+                };
+                _context.UserRoles.Add(newUserRole);
+                await _context.SaveChangesAsync();
+            }
+            return CreatedAtAction(nameof(GetProfile), new { id = newUser.Id }, new { message = "User registered successfully." });
+        }
+        // Retrieves the authenticated user's profile.
+        [HttpGet("GetProfile")]
+        [Authorize]
+        public async Task<IActionResult> GetProfile()
+        {
+            // Extract the user's email from the JWT token claims.
+            var emailClaim = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Email);
+            if (emailClaim == null)
+            {
+                return Unauthorized(new { message = "Invalid token: Email claim missing." });
+            }
+            string userEmail = emailClaim.Value;
+            // Retrieve the user from the database, including roles.
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == userEmail.ToLower());
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found." });
+            }
+            // Map the user entity to ProfileDTO.
+            var profile = new ProfileDTO
+            {
+                Id = user.Id,
+                Email = user.Email,
+                Firstname = user.Firstname,
+                Lastname = user.Lastname,
+                Roles = user.UserRoles.Select(ur => ur.Role.Name).ToList()
+            };
+            return Ok(profile);
+        }
+        // Updates the authenticated user's profile.
+        [HttpPut("UpdateProfile")]
+        [Authorize]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDTO updateDto)
+        {
+            // Validate the incoming model.
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            // Extract the user's email from the JWT token claims.
+            var emailClaim = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Email);
+            if (emailClaim == null)
+            {
+                return Unauthorized(new { message = "Invalid token: Email claim missing." });
+            }
+            string userEmail = emailClaim.Value;
+            // Retrieve the user from the database.
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == userEmail.ToLower());
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found." });
+            }
+            // Update fields if provided.
+            if (!string.IsNullOrEmpty(updateDto.Firstname))
+            {
+                user.Firstname = updateDto.Firstname;
+            }
+            if (!string.IsNullOrEmpty(updateDto.Lastname))
+            {
+                user.Lastname = updateDto.Lastname;
+            }
+            if (!string.IsNullOrEmpty(updateDto.Email))
+            {
+                // Check if the new email is already taken by another user.
+                var emailExists = await _context.Users
+                    .AnyAsync(u => u.Email.ToLower() == updateDto.Email.ToLower() && u.Id != user.Id);
+                if (emailExists)
+                {
+                    return Conflict(new { message = "Email is already in use by another account." });
+                }
+                user.Email = updateDto.Email;
+            }
+            if (!string.IsNullOrEmpty(updateDto.Password))
+            {
+                // Hash the new password before storing.
+                string hashedPassword = BCrypt.Net.BCrypt.HashPassword(updateDto.Password);
+                user.Password = hashedPassword;
+            }
+            // Save the changes to the database.
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Profile updated successfully." });
+        }
+    }
+}
+```
+
+### 인증 컨트롤러
+API 컨트롤러, 사용자를 인증하고 JWT 토큰을 발행한다. <br/>
 ```c#
 using JWTAuthServer.Data;
 using JWTAuthServer.DTOs;
