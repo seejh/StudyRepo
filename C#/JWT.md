@@ -339,8 +339,8 @@ namespace JWTAuthServer.Controllers
             var client = _context.Clients.FirstOrDefault(c => c.ClientId == loginDto.ClientId);
             if (client == null) { return Unauthorized("Invalid client credentials."); }
 
-            // Retrieve the user from the Users table by matching the email (case-insensitive)
-            // Also include the UserRoles and associated Roles for later use
+            // DB에서 이메일이 일치하는 사용자를 찾는다 (대소문자 구분)
+            // 
             var user = await _context.Users.Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
                     .FirstOrDefaultAsync(u => u.Email.ToLower() == loginDto.Email.ToLower());
@@ -409,6 +409,93 @@ namespace JWTAuthServer.Controllers
             var tokenHandler = new JwtSecurityTokenHandler();
             var token = tokenHandler.WriteToken(tokenDescriptor);
             return token;
+        }
+    }
+}
+```
+
+## 기본 설정
+### Program.cs
+```c#
+using JWTAuthServer.Data;
+using Microsoft.EntityFrameworkCore;
+using JWTAuthServer.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+
+namespace JWTAuthServer
+{
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            var builder = WebApplication.CreateBuilder(args);
+            // 컨테이너에 컨트롤러 서비스를 추가하고 JSON 직렬화 옵션을 구성한다.
+            builder.Services.AddControllers().AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.PropertyNamingPolicy = null; // CamelCase 이름 지정 비활성화
+                });
+            builder.Services.AddEndpointsApiExplorer(); 
+            builder.Services.AddSwaggerGen();
+
+            // EF Core 구성
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("EFCoreDBConnection")));
+
+            // 백그라운드 서비스(KeyRotationService) 등록
+            builder.Services.AddHostedService<KeyRotationService>();
+
+            // 인증에 JWT Bearer token을 사용하도록 설정
+            builder.Services.AddAuthentication(options =>
+            {
+                // This indicates the authentication scheme that will be used by default when the app attempts to authenticate a user.
+                // Which authentication handler to use for verifying who the user is by default.
+                // 앱이 사용자를 인증할 때 사용되는 기본 인증 체계를 나타낸다.
+                // 
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                // This indicates the authentication scheme that will be used by default when the app encounters an authentication challenge. 
+                // Which authentication handler to use for responding to failed authentication or authorization attempts.
+                // 
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                // Define token validation parameters to ensure tokens are valid and trustworthy
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true, // Ensure the token was issued by a trusted issuer
+                    ValidIssuer = builder.Configuration["Jwt:Issuer"], // The expected issuer value from configuration
+                    ValidateAudience = false, // Disable audience validation (can be enabled as needed)
+                    ValidateLifetime = true, // Ensure the token has not expired
+                    ValidateIssuerSigningKey = true, // Ensure the token's signing key is valid
+                    // Define a custom IssuerSigningKeyResolver to dynamically retrieve signing keys from the JWKS endpoint
+                    IssuerSigningKeyResolver = (token, securityToken, kid, parameters) =>
+                    {
+                        //Console.WriteLine($"Received Token: {token}");
+                        //Console.WriteLine($"Token Issuer: {securityToken.Issuer}");
+                        //Console.WriteLine($"Key ID: {kid}");
+                        //Console.WriteLine($"Validate Lifetime: {parameters.ValidateLifetime}");
+                        // Initialize an HttpClient instance for fetching the JWKS
+                        var httpClient = new HttpClient();
+                        // Synchronously fetch the JWKS (JSON Web Key Set) from the specified URL
+                        var jwks = httpClient.GetStringAsync($"{builder.Configuration["Jwt:Issuer"]}/.well-known/jwks.json").Result;
+                        // Parse the fetched JWKS into a JsonWebKeySet object
+                        var keys = new JsonWebKeySet(jwks);
+                        // Return the collection of JsonWebKey objects for token validation
+                        return keys.Keys;
+                    }
+                };
+            });
+
+            // 구성된 서비스와 미들웨어로 웹앱 인스턴스를 빌드
+            var app = builder.Build();
+            if (app.Environment.IsDevelopment()) { app.UseSwagger(); app.UseSwaggerUI(); } // 필요 x
+
+            app.UseHttpsRedirection(); // 보안된 통신을 위해 HTTPS 리디렉션 적용
+            app.UseAuthentication(); // Authentication 미들웨어 사용, 들어오는 JWT 토큰을 처리하고 유효성을 검사
+            app.UseAuthorization(); // Authorization 미들웨어 사용, 사용자 역할 및 클레임에 따라 액세스 정책을 적용
+            app.MapControllers();
+            app.Run();
         }
     }
 }
