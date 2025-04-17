@@ -152,6 +152,7 @@ using JWTAuthServer.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+
 namespace JWTAuthServer.Controllers
 {
     [Route("api/[controller]")]
@@ -159,30 +160,26 @@ namespace JWTAuthServer.Controllers
     public class UsersController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
-        // Constructor injecting the ApplicationDbContext
-        public UsersController(ApplicationDbContext context)
+        public UsersController(ApplicationDbContext context) // 생성자에서 ~DbContext를 주입
         {
-            _context = context;
+            _context = context; 
         }
-        // Registers a new user.
+
+        // 새 사용자 등록
         [HttpPost("Register")]
         public async Task<IActionResult> Register([FromBody] RegisterDTO registerDto)
         {
-            // Validate the incoming model.
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            // Check if the email already exists.
-            var existingUser = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email.ToLower() == registerDto.Email.ToLower());
-            if (existingUser != null)
-            {
-                return Conflict(new { message = "Email is already registered." });
-            }
-            // Hash the password using BCrypt.
+            // 모델 유효성 검사
+            if (!ModelState.IsValid) { return BadRequest(ModelState); }
+
+            // 해당 이메일이 이미 존재하는지 확인
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == registerDto.Email.ToLower());
+            if (existingUser != null) { return Conflict(new { message = "Email is already registered." }); }
+
+            // BCrypt를 사용해서 패스워드를 해시
             string hashedPassword = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
-            // Create a new user entity.
+
+            // 유저 엔티티 생성, DB에 추가
             var newUser = new User
             {
                 Firstname = registerDto.Firstname,
@@ -190,11 +187,10 @@ namespace JWTAuthServer.Controllers
                 Email = registerDto.Email,
                 Password = hashedPassword
             };
-            // Add the new user to the database.
             _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
-            // Optionally, assign a default role to the new user.
-            // For example, assign the "User" role.
+
+            // 선택사항, 유저에게 역할을 할당, 여기서는 새로운 유저에게 User라는 역할을 할당
             var userRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "User");
             if (userRole != null)
             {
@@ -206,9 +202,12 @@ namespace JWTAuthServer.Controllers
                 _context.UserRoles.Add(newUserRole);
                 await _context.SaveChangesAsync();
             }
+
+            // 201 응답(생성 성공)
             return CreatedAtAction(nameof(GetProfile), new { id = newUser.Id }, new { message = "User registered successfully." });
         }
-        // Retrieves the authenticated user's profile.
+
+        // 인증된 유저의 프로필을 가져온다.
         [HttpGet("GetProfile")]
         [Authorize]
         public async Task<IActionResult> GetProfile()
@@ -238,9 +237,11 @@ namespace JWTAuthServer.Controllers
                 Lastname = user.Lastname,
                 Roles = user.UserRoles.Select(ur => ur.Role.Name).ToList()
             };
+
             return Ok(profile);
         }
-        // Updates the authenticated user's profile.
+
+        // 인증된 유저의 프로필 업데이트
         [HttpPut("UpdateProfile")]
         [Authorize]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDTO updateDto)
