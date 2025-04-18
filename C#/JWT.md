@@ -1,6 +1,12 @@
 
 # JWT
 
+## 사용 패키지
+Microsoft.EntityFrameworkCore.SqlServer <br/>
+Microsoft.EntityFrameworkCore.Tools <br/>
+Microsoft.AspNetCore.Authentication.JwtBearer <br/>
+BCrypt.Net-Next <br/>
+
 ## 데이터 전송 객체(DTO) 생성
 DTO(Data Transfer Objects)는 클라이언트와 서버 간에 전송되는 데이터를 캡슐화하는데 사용되어 필요한 정보만 노출되도록 한다. <br/>
 
