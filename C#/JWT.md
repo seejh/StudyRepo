@@ -7,6 +7,41 @@ Microsoft.EntityFrameworkCore.Tools <br/>
 Microsoft.AspNetCore.Authentication.JwtBearer <br/>
 BCrypt.Net-Next <br/>
 
+## 엔티티
+### SigningKey
+RSA 키를 동적으로 관리하기 위해 키 정보를 보유하는 SigningKey 엔티티를 사용한다. <br/>
+```c#
+using System.ComponentModel.DataAnnotations;
+
+namespace JWTAuthServer.Models
+{
+    public class SigningKey
+    {
+        [Key]
+        public int Id { get; set; }
+
+        // 고유 식별자
+        [Required]
+        [MaxLength(100)]
+        public string KeyId { get; set; }
+
+        // 개인키, 공개키(XML 또는 PEM 형식)
+        [Required]
+        public string PrivateKey { get; set; }
+        [Required]
+        public string PublicKey { get; set; }
+
+        // 키 활성 상태, 키 생성 시간, 키 만료 시간
+        [Required]
+        public bool IsActive { get; set; }
+        [Required]
+        public DateTime CreatedAt { get; set; }
+        [Required]
+        public DateTime ExpiresAt { get; set; }
+    }
+}
+```
+
 ## 데이터 전송 객체(DTO) 생성
 DTO(Data Transfer Objects)는 클라이언트와 서버 간에 전송되는 데이터를 캡슐화하는데 사용되어 필요한 정보만 노출되도록 한다. <br/>
 
@@ -365,15 +400,13 @@ namespace JWTAuthServer.Controllers
         // JWT 토큰 발행, private 메서드
         private string GenerateJwtToken(User user, Client client)
         {
-            // Retrieve the active signing key from the SigningKeys table
+            // DB에서 현재 활성화된 서명키를 가져온다.
             var signingKey = _context.SigningKeys.FirstOrDefault(k => k.IsActive);
             if (signingKey == null) { throw new Exception("No active signing key available."); }
 
-            // Base64로 인코딩된 개인키 문자열을 바이트 배열로 다시 변환한다.
+            // 서명키의 비밀키를 Base64 -> 바이트 배열로 다시 변환
+            // 해당 비밀키로 RSA 보안키 생성
             var privateKeyBytes = Convert.FromBase64String(signingKey.PrivateKey);
-            // 암호화 작업을 위한 새 RSA 인스턴스 생성
-            // RSA 개인키를 RSA 인스턴스로 가져옴
-            // RSA 인스턴스를 사용하여 새 RsaSecurityKey 생성
             var rsa = RSA.Create();
             rsa.ImportRSAPrivateKey(privateKeyBytes, out _);
             var rsaSecurityKey = new RsaSecurityKey(rsa)
