@@ -545,3 +545,13 @@ namespace JWTAuthServer
 출처 : <br/>
 https://dotnettutorials.net/lesson/jwt-authentication-in-asp-net-core-web-api/ <br/>
 <hr/>
+
+
+# 마무리 안됨
+조금 더 확인해볼만한 것 <br/>
+https://bigexecution.tistory.com/22 <br/>
+https://jasonwatmore.com/net-6-jwt-authentication-with-refresh-tokens-tutorial-with-example-api#authorize-attribute-cs <br/>
+
+
+
+<hr/>
