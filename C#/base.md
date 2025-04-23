@@ -22,7 +22,7 @@ using (SqlConnection connection = new SqlConnection(ConnectionString))
 ## 메모리 관리 부분 추가 설명
 C#은 자동 메모리 관리 기능을 제공 (Garbage Collector) <br/>
 다만 모든 메모리를 다 관리하지는 않는다. (파일, DB, 네트워크 쪽 핸들 및 커넥션은 GC가 자동으로 해제하지 않으므로 직접 정리해야 한다.) <br/>
-
+중요 데이터와 메모리를 빠르게 반납해야 할 때, 다른 프로세스와의 교착 상태를 방지하고자 할 때, 메모리 낭비를 방지하고자 할 때 사용 <br/>
 ## IDisposalble 인터페이스와 Disponse 패턴
 ```c#
 namespace ProjectName
@@ -53,5 +53,5 @@ namespace ProjectName
 ```
 
 출처 : <br/>
-https://pupunga.tistory.com/23 <br/>
+https://blog.naver.com/PostView.nhn?blogId=94cogus&logNo=221539195761 <br/>
 <hr/><br/><br/>
