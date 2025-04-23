@@ -27,12 +27,12 @@ C# 콘솔 앱에서 EF Core 사용 예제 </br>
 3. 스키마 마이그레이션
 4. 기본 CRUD
 
-## 패키지 설치
+## 1 패키지 설치
 Microsoft.EntityFrameworkCore - EFCore <br/>
 Microsoft.EntityFrameworkCore.Tools - EFCore 명령어 <br/>
 Microsoft.EntityFramewarkCore.SqlServer - EFCore MSSQL <br/>
 
-## DbContext 세팅
+## 2 DbContext 세팅
 DbContext와 엔티티 모델 생성 <br/>
 ```c#
 // /ProductApp/AppDbContext.cs
@@ -97,7 +97,7 @@ namespace ProductApp
 }
 ```
 
-## 마이그레이션
+## 3 마이그레이션
 어플리케이션 코드를 기반으로 DB 스키마를 설계하고 생성하겠다는 것(마이그레이션)으로 <br/>
 DB에 스키마 등 해당 내용들이 이미 존재한다면 수행하지 않고 패스 <br/>
 
@@ -111,7 +111,7 @@ Add-Migration InitialCreate
 Update-Database
 ```
 
-## CRUD
+## 4 CRUD
 메서드에 모든 logic을 배치하는 대신 제품 관련 작업을 처리하는 서비스 생성 <br/>
 이렇게 하면 코드가 더 깔끔하고 확장 가능해진다 <br/>
 
@@ -213,6 +213,66 @@ class Program
 
 실습 출처 : <br/>
 https://dev.to/moh_moh701/efcore-tutorial-p1-getting-started-with-ef-core-48g0 <br/>
-<hr/>
+<hr/><br/><br/>
+
+# 실습 2편
+속성(Attribute, Data Annotation), Fluent API를 사용한 엔티티 구성 <br/>
+
+## 속성(Attribute, Data Annotation)을 사용한 엔티티 구성
+엔티티 클래스에서 정의되며 쉽고 간단하나 기본 유효성 검사 및 관계로 제한 된다 <br/>
+
+```c#
+public class Product
+{
+    public int Id {get;set;}
+
+    [Required] // Name이 꼭 있어야 함
+    [MaxLength(100)] // 문자열 길이 최대 제한
+    public string Name {get;set;}
+
+    [Range(0, 10000)] Price의 제한 범위 설정
+    public decimal Price {get;set;}
+
+    [ForeignKey("CategoryId")] // Category 테이블에 대한 외래키를 정의
+    public Category Category {get;set;}
+}
+```
+
+## Fluent API를 사용한 엔티티 구성
+DbContext에 정의되며 속성(Attribute)이 제공하는 것보다 더 많은 기능을 제공 <br/>
+복합키 및 자세한 관계와 같은 고급 구성 지원 <br/>
+
+```c#
+public class AppDbContext : DbContext
+{
+    public DbSet<Product> Products {get;set;}
+    public DbSet<Category> Categories {get;set;}
+    public Dbset<Inventory> Inventories {get;set;}
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    { optionsBuilder.UseSqlServer("ConenctionString"); }
+
+    protected override void OnModelCreate(ModelBuilder modelBuilder)
+    {
+        // Category 엔티티의 Fluent API 구성
+        modelBuilder.Entity<Category>(entity => {
+            // 기본키 설정
+            entity.HasKey(c => c.Id);
+
+            // 
+            entity.Property(c => c.Name)
+                    .IsRequired()
+                    .HasMaxLength(50); // Name의 길이를 50 character로 제한
+
+            // Product 테이블과의 관계 구성
+            entity.HasMany(c => c.Products)
+                    .WithOne(p => p.Category)
+                    .HasForeignKey(p => p.CategoryId);
+        });
+    }
+}
+```
+엔티티를 구성한 후 DB에 마이그레이션 (이미 DB가 구현되어 있으면 패스)<br/>
+
+
 
 
