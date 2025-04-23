@@ -18,12 +18,14 @@ SQL 문으로 테이블과 저장 프로시저 등 DB를 먼저 구성하고 프
 https://www.dotnetkorea.com/docs/efcore/code-first-vs-database-first/ <br/>
 
 # 실습
+C# 콘솔 앱에서 EF Core 사용 예제 </br>
+.NET Core 콘솔 앱 프로젝트 생성, 프로젝트 명은 ProductApp <br/>
+
 ## 실습 순서
 1. Nuget으로 패키지 설치
 2. DbContext 세팅
 3. 스키마 마이그레이션
 4. 기본 CRUD
-프로젝트는 .NET Core 콘솔 앱으로 생성, 프로젝트 이름 ProductApp으로 생성 <br/>
 
 ## 패키지 설치
 Microsoft.EntityFrameworkCore - EFCore <br/>
@@ -33,10 +35,10 @@ Microsoft.EntityFramewarkCore.SqlServer - EFCore MSSQL <br/>
 ## DbContext 세팅
 DbContext와 엔티티 모델 생성 <br/>
 ```c#
+// /ProductApp/AppDbContext.cs
 using Microsoft.EntityFrameworkCore;
-using ProductDomain;
 
-namespace ProductData
+namespace ProductApp
 {
     public class AppDbContext : DbContext
     {
@@ -46,7 +48,7 @@ namespace ProductData
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            // 연결 문자열, Program.cs에서도 설정할 수 있다.
+            // 아래에 본인의 DB 커넥션 스트링을 넣는다.
             optionsBuilder.UseSqlServer(@"Your_Connection_String_Here");
         }
     }
@@ -54,7 +56,8 @@ namespace ProductData
 ```
 
 ```c#
-namespace ProductDomain
+// /ProductApp/Product.cs
+namespace ProductApp
 {
     public class Product
     {
@@ -68,7 +71,8 @@ namespace ProductDomain
 ```
 
 ```c#
-namespace ProductDomain
+// /ProductApp/Category.cs
+namespace ProductApp
 {
     public class Category
     {
@@ -80,7 +84,8 @@ namespace ProductDomain
 ```
 
 ```c#
-namespace ProductDomain
+// /ProductApp/Inventory.cs
+namespace ProductApp
 {
     public class Inventory
     {
@@ -111,13 +116,13 @@ Update-Database
 이렇게 하면 코드가 더 깔끔하고 확장 가능해진다 <br/>
 
 ```c#
-using ProductDomain;
+// /ProductApp/ProductService.cs
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ProductData
+namespace ProductApp
 {
     public class ProductService
     {
@@ -168,6 +173,43 @@ namespace ProductData
     }
 }
 ```
+
+```c#
+// /ProductApp/Program.cs
+using ProductApp;
+using System;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        using (var context = new AppDbContext())
+        {
+            // 
+            var productService = new ProductService(context);
+
+            // CREATE (생성)
+            productService.CreateProduct("Laptop", 999.99M, "Electronics");
+
+            // SELECT (검색)
+            var products = productService.GetAllProducts();
+            foreach (var product in products)
+            {
+                Console.WriteLine($"Product: {product.Name}, Category: {product.Category.Name}, Price: {product.Price}");
+            }
+
+            // UPDATE (업데이트)
+            var productIdToUpdate = products[0].Id;
+            productService.UpdateProductPrice(productIdToUpdate, 899.99M);
+
+            // DELETE (삭제)
+            var productIdToDelete = products[0].Id;
+            productService.DeleteProduct(productIdToDelete);
+        }
+    }
+}
+```
+
 
 실습 출처 : <br/>
 https://dev.to/moh_moh701/efcore-tutorial-p1-getting-started-with-ef-core-48g0 <br/>
