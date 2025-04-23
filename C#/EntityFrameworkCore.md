@@ -1,6 +1,6 @@
 # EF Core
 마이크로소프트의 .NET Core 기반의 ORM 프레임워크 <br/>
-CRUD, 변경 내용 추적, 스키마 마이그레이션, 스캐폴드 지원 <br/>
+CRUD, 변경 내용 추적, 스키마 마이그레이션와 스캐폴드, 버전 관리 <br/>
 
 ## 용어 및 추가 설명
 ### ORM(Object Relational Mapper) 
@@ -17,91 +17,160 @@ SQL 문으로 테이블과 저장 프로시저 등 DB를 먼저 구성하고 프
 ### 추가 내용 출처
 https://www.dotnetkorea.com/docs/efcore/code-first-vs-database-first/ <br/>
 
-# 설치
-## 패키지
+# 실습
+## 실습 순서
+1. Nuget으로 패키지 설치
+2. DbContext 세팅
+3. 스키마 마이그레이션
+4. 기본 CRUD
+프로젝트는 .NET Core 콘솔 앱으로 생성, 프로젝트 이름 ProductApp으로 생성 <br/>
+
+## 패키지 설치
 Microsoft.EntityFrameworkCore - EFCore <br/>
 Microsoft.EntityFrameworkCore.Tools - EFCore 명령어 <br/>
 Microsoft.EntityFramewarkCore.SqlServer - EFCore MSSQL <br/>
-# EF Core 간단 이해
-## 업데이트 예제
+
+## DbContext 세팅
+DbContext와 엔티티 모델 생성 <br/>
 ```c#
-using var db = new BloggingContext();
+using Microsoft.EntityFrameworkCore;
+using ProductDomain;
 
-// 삽입 (Insert)
-db.Add(new Blog { Url = "http://blogs.msdn.com/adonet" });
-db.SaveChanges();
-
-// 탐색 (Select)
-var blog = db.Blogs
-    .OrderBy(b => b.BlogId)
-    .First();
-
-// 업데이트 (Update)
-blog.Url = "https://devblogs.microsoft.com/dotnet";
-blog.Posts.Add(
-    new Post
+namespace ProductData
+{
+    public class AppDbContext : DbContext
     {
-        Title = "Hello World",
-        Content = "I wrote an app using EF Core!"
-    });
-db.SaveChanges();
+        public DbSet<Product> Products { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<Inventory> Inventories { get; set; }
 
-// 삭제 (Delete)
-db.Remove(blog);
-db.SaveChanges();
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            // 연결 문자열, Program.cs에서도 설정할 수 있다.
+            optionsBuilder.UseSqlServer(@"Your_Connection_String_Here");
+        }
+    }
+}
 ```
 
-## 마이그레이션 예제
 ```c#
-// Models.cs
+namespace ProductDomain
+{
+    public class Product
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public decimal Price { get; set; }
+        public int CategoryId { get; set; }
+        public Category Category { get; set; }
+    }
+}
+```
+
+```c#
+namespace ProductDomain
+{
+    public class Category
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public ICollection<Product> Products { get; set; }
+    }
+}
+```
+
+```c#
+namespace ProductDomain
+{
+    public class Inventory
+    {
+        public int Id { get; set; }
+        public int ProductId { get; set; }
+        public Product Product { get; set; }
+        public int Quantity { get; set; }
+    }
+}
+```
+
+## 마이그레이션
+어플리케이션 코드를 기반으로 DB 스키마를 설계하고 생성하겠다는 것(마이그레이션)으로 <br/>
+DB에 스키마 등 해당 내용들이 이미 존재한다면 수행하지 않고 패스 <br/>
+
+```
+/*----------------------------------------------------------
+    도구 -> Nuget 패키지 관리자 -> 패키지 관리자 콘솔 -> 기본 프로젝트를 현재 프로젝트로 설정
+    Add-Migration "네이밍" 으로 마이그레이션 생성
+    Update-Database로 마이그레이션을 DB에 업데이트
+------------------------------------------------------------*/
+Add-Migration InitialCreate
+Update-Database
+```
+
+## CRUD
+메서드에 모든 logic을 배치하는 대신 제품 관련 작업을 처리하는 서비스 생성 <br/>
+이렇게 하면 코드가 더 깔끔하고 확장 가능해진다 <br/>
+
+```c#
+using ProductDomain;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
-public class BloggingContext : DbContext
+namespace ProductData
 {
-    public DbSet<Blog> Blogs { get; set; }
-    public DbSet<Post> Posts { get; set; }
-
-    public string DbPath { get; }
-
-    public BloggingContext()
+    public class ProductService
     {
-        var folder = Environment.SpecialFolder.LocalApplicationData;
-        var path = Environment.GetFolderPath(folder);
-        DbPath = System.IO.Path.Join(path, "blogging.db");
+        // 생성 시 DbContext를 인자로 받으며 멤버로 가지고 있음 
+        private readonly AppDbContext _context;
+        public ProductService(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        // 생성
+        public void CreateProduct(string productName, decimal price, string categoryName)
+        {
+            // 새 상품 생성 -> 추가 -> DB에 변경 사항 업데이트
+            var category = new Category { Name = categoryName };
+            var product = new Product { Name = productName, Price = price, Category = category };
+            _context.Products.Add(product);
+            _context.SaveChanges();
+        }
+        // 검색
+        public List<Product> GetAllProducts()
+        {
+            // 
+            return _context.Products.Include(p => p.Category).ToList();
+        }
+        // 업데이트
+        public void UpdateProductPrice(int productId, decimal newPrice)
+        {
+            // 명시한 조건으로 탐색 -> 데이터 변경 -> DB에 변경 사항 업데이트
+            var product = _context.Products.FirstOrDefault(p => p.Id == productId);
+            if (product != null)
+            {
+                product.Price = newPrice;
+                _context.SaveChanges();
+            }
+        }
+        // 삭제
+        public void DeleteProduct(int productId)
+        {
+            // 명시한 조건으로 탐색 -> 제거 -> DB에 변경 사항 업데이트
+            var product = _context.Products.FirstOrDefault(p => p.Id == productId);
+            if (product != null)
+            {
+                _context.Products.Remove(product);
+                _context.SaveChanges();
+            }
+        }
     }
-
-    // The following configures EF to create a Sqlite database file in the
-    // special "local" folder for your platform.
-    protected override void OnConfiguring(DbContextOptionsBuilder options)
-        => options.UseSqlite($"Data Source={DbPath}");
-}
-
-public class Blog
-{
-    public int BlogId { get; set; }
-    public string Url { get; set; }
-
-    public List<Post> Posts { get; } = new();
-}
-
-public class Post
-{
-    public int PostId { get; set; }
-    public string Title { get; set; }
-    public string Content { get; set; }
-
-    public int BlogId { get; set; }
-    public Blog Blog { get; set; }
 }
 ```
 
-패키지 관리자 콘솔 <br/>
-
-출처 : <br/>
-https://learn.microsoft.com/ko-kr/ef/core/get-started/overview/first-app?tabs=visual-studio <br/>
-
+실습 출처 : <br/>
+https://dev.to/moh_moh701/efcore-tutorial-p1-getting-started-with-ef-core-48g0 <br/>
 <hr/>
 
 
