@@ -3,3 +3,55 @@
 출처 : <br/>
 https://m.blog.naver.com/okcharles/222152730413 <br/>
 <hr/><br/><br/>
+
+# Using
+C#의 using 용도 2가지 <br/>
+```c#
+// 1. 파일 참조
+using Microsoft.EntityFrameworkCore;
+using MyProjectFolder
+
+// 2. 메모리 관리
+using (SqlConnection connection = new SqlConnection(ConnectionString))
+{
+  SqlCommand command = new SqlCommand(queryString, conenction);
+  command.Connection.Open();
+  command.ExecuteNonQuery();
+} // 해당 구문에서 벗어날 때 connection 객체 메모리 해제
+```
+## 메모리 관리 부분 추가 설명
+C#은 자동 메모리 관리 기능을 제공 (Garbage Collector) <br/>
+다만 모든 메모리를 다 관리하지는 않는다. (파일, DB, 네트워크 쪽 핸들 및 커넥션은 GC가 자동으로 해제하지 않으므로 직접 정리해야 한다.) <br/>
+
+## IDisposalble 인터페이스와 Disponse 패턴
+```c#
+namespace ProjectName
+{
+  class SomeObject : IDisposable
+  {
+    public void Dispose() { Console.WriteLine("메모리 해제 완료"); }
+  }
+
+  class Program
+  {
+    static void Main()
+    {
+      using (var object : new SomeObject())
+      {
+        Console.WriteLine("In Block");
+      };
+      Console.WriteLine("Out Block");
+    }
+  }
+}
+/*------------------------------------------------------
+  출력
+  In Block
+  메모리 해제 완료
+  Out Block
+------------------------------------------------------*/
+```
+
+출처 : <br/>
+https://pupunga.tistory.com/23 <br/>
+<hr/><br/><br/>
