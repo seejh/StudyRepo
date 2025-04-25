@@ -3,12 +3,13 @@
 CRUD, 변경 내용 추적, 스키마 마이그레이션와 스캐폴드, 버전 관리 <br/>
 
 ## 용어 및 추가 설명
-### ORM(Object Relational Mapper) 
-프로그래밍 언어와 DB 간의 데이터 매핑을 자동으로 처리하는 프레임워크나 라이브러리를 의미 <br/>
-위의 내용을 쉽게 설명하자면 아래와 같다. <br/>
+### ORM(Object Relational Mapper, (프로그래밍의)객체 (DB의)관계 매퍼)
+객체 지향 프로그래밍 언어의 객체와 관계형 데이터베이스 간의 데이터를 자동으로 변환하고 연결하는 매퍼(프레임워크나 라이브러리) <br/>
+위의 내용을 쉽게 설명하자면 아래와 같다 (EF Core를 예로 설명) <br/>
 1. 프로그래밍 언어에서 DB에 접근(CRUD)하기 위해 SQL 쿼리를 사용하는 대신, <br/>
-    매핑된 개체(EFCore에서는 DbContext)를 사용하여 데이터를 가져오거나 업데이트할 수 있다 <br/>
-2. 코드 퍼스트, DB 퍼스트의 방법으로 하나의 기준점을 잡고 반대편에 스키마나 프로시저를 자동으로 생성할 수 있다. <br/>
+    매핑된 개체(DbContext)를 사용하여 데이터를 가져오거나 업데이트할 수 있다 
+2. 코드 퍼스트, DB 퍼스트의 방법으로 프로그래밍 영역에서 정의된 구조를 바탕으로 DB에 만들거나 <br/>
+    DB에 정의된 구조를 바탕으로 프로그래밍 영역에 만듬
 ### 코드 퍼스트(Code First) 
 프로그래밍 영역에서 모델 클래스를 만들고 이를 바탕으로 DB 개체인 테이블을 만들고 사용하는 방법<br/>
 ### DB 퍼스트 (DB First) 
@@ -17,7 +18,7 @@ SQL 문으로 테이블과 저장 프로시저 등 DB를 먼저 구성하고 프
 ### 추가 내용 출처
 https://www.dotnetkorea.com/docs/efcore/code-first-vs-database-first/ <br/>
 
-# 실습
+# 실습 - 기본적인 설정 및 사용
 C# 콘솔 앱에서 EF Core 사용 예제 </br>
 .NET Core 콘솔 앱 프로젝트 생성, 프로젝트 명은 ProductApp <br/>
 
@@ -126,7 +127,6 @@ namespace ProductApp
 {
     public class ProductService
     {
-        // 생성 시 DbContext를 인자로 받으며 멤버로 가지고 있음 
         private readonly AppDbContext _context;
         public ProductService(AppDbContext context)
         {
@@ -215,34 +215,44 @@ class Program
 https://dev.to/moh_moh701/efcore-tutorial-p1-getting-started-with-ef-core-48g0 <br/>
 <hr/><br/><br/>
 
-# 실습 2편
-속성(Attribute, Data Annotation), Fluent API를 사용한 엔티티 구성 <br/>
+# 심화1 - 엔티티
+## Entity FrameworkCore에서 Entity
+![image](https://github.com/user-attachments/assets/a5351dc4-a65f-4b00-9ba9-be5cee655ac2) <br/>
+위의 그림에서 DbContext 클래스에 DbSet<TEntity> 형식으로 포함된 클래스(Department)를 엔티티라고 말한다. <br/>
+EF Core는 각 엔티티를 DB 테이블에 매핑하고 엔티티의 각 속성은 DB 테이블의 열에 매핑된다. <br/>
+위 예제에서 Department 엔티티는 Departments DB 테이블과 매핑된다. <br/>
 
-## 속성(Attribute, Data Annotation)을 사용한 엔티티 구성
-엔티티 클래스에서 정의되며 쉽고 간단하나 기본 유효성 검사 및 관계로 제한 된다 <br/>
+## 엔티티 구성 (Attribute, Fluent API)
+속성(Attribute, Data Annotation) 방식으로 엔티티 구성, Fluent API 방식으로 엔티티 구성<br/>
 
+### 속성 (Attribute, Data Annotation) 방식
+해당 엔티티 클래스 내에서 구성, 간단한 설정만 가능 <br/>
 ```c#
+// /ProductApp/Product.cs, Product 엔티티 구성
 public class Product
 {
     public int Id {get;set;}
 
-    [Required] // Name이 꼭 있어야 함
-    [MaxLength(100)] // 문자열 길이 최대 제한
+    // Name 값은 꼭 있어야 하고 문자열의 길이는 100자로 제한
+    [Required]
+    [MaxLength(100)]
     public string Name {get;set;}
 
-    [Range(0, 10000)] Price의 제한 범위 설정
+    // Price의 값의 범위는 0 ~ 10000이어야 한다.
+    [Range(0, 10000)]
     public decimal Price {get;set;}
 
-    [ForeignKey("CategoryId")] // Category 테이블에 대한 외래키를 정의
+    // Category 테이블의 외래키(CategoryId) 
+    [ForeignKey("CategoryId")]
     public Category Category {get;set;}
 }
 ```
 
-## Fluent API를 사용한 엔티티 구성
+### Fluent API 방식
 DbContext에 정의되며 속성(Attribute)이 제공하는 것보다 더 많은 기능을 제공 <br/>
 복합키 및 자세한 관계와 같은 고급 구성 지원 <br/>
-
 ```c#
+// /ProductApp/AppDbContext.cs, Category 엔티티 구성
 public class AppDbContext : DbContext
 {
     public DbSet<Product> Products {get;set;}
@@ -253,15 +263,15 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreate(ModelBuilder modelBuilder)
     {
-        // Category 엔티티의 Fluent API 구성
+        // Fluent API 방식으로 Category 엔티티 구성
         modelBuilder.Entity<Category>(entity => {
             // 기본키 설정
             entity.HasKey(c => c.Id);
 
-            // 
+            // Name은 있어야 하며 문자열 길이를 50자로 제한
             entity.Property(c => c.Name)
                     .IsRequired()
-                    .HasMaxLength(50); // Name의 길이를 50 character로 제한
+                    .HasMaxLength(50);
 
             // Product 테이블과의 관계 구성
             entity.HasMany(c => c.Products)
@@ -271,8 +281,18 @@ public class AppDbContext : DbContext
     }
 }
 ```
-엔티티를 구성한 후 DB에 마이그레이션 (이미 DB가 구현되어 있으면 패스)<br/>
+속성, Fluent API 방식으로 엔티티를 구성한 후 DB에 마이그레이션한다 (해당 내용이 이미 DB에 설정되어 있으면 안해도 됨) <br/>
 
+## 엔티티 상태 (Entity State)
+Added - 해당 엔티티가 DbContext에 의해 상태 추적이 되고 있지만 아직 DB에 없다
+Deleted - 해당 엔티티가 DbContext에 의해 상태 추적 되고 DB에 존재하지만 다음 SaveChanges가 호출될 때 
+DB에서 삭제되도록 설정
+Modified - 상태 추적되는 중, DB에 존재, DB 값에서 수정된 상태
+Unchanged - 상태 추적되는 중, DB에 존재, DB와 다를게 없는 상태
+Detached - 
+
+
+<hr/><br/><br/>
 
 
 
