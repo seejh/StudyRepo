@@ -55,3 +55,13 @@ namespace ProjectName
 출처 : <br/>
 https://blog.naver.com/PostView.nhn?blogId=94cogus&logNo=221539195761 <br/>
 <hr/><br/><br/>
+
+# .AsNoTracking()
+기본적으로 EF Core는 모든 entity의 상태를 추적(tracking)한다. <br/>
+이것은 메모리 사용량을 높이고, 쿼리 속도가 느려진다. <br/>
+.AsNoTracking을 쓰면 추적을 안함으로서 위의 문제 <br/>
+
+
+출처 : <br/>
+https://bigexecution.tistory.com/237 <br/>
+<hr/><br/><br/>
