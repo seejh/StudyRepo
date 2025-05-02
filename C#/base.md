@@ -56,12 +56,21 @@ namespace ProjectName
 https://blog.naver.com/PostView.nhn?blogId=94cogus&logNo=221539195761 <br/>
 <hr/><br/><br/>
 
-# .AsNoTracking()
-기본적으로 EF Core는 모든 entity의 상태를 추적(tracking)한다. <br/>
-이것은 메모리 사용량을 높이고, 쿼리 속도가 느려진다. <br/>
-.AsNoTracking을 쓰면 추적을 안함으로서 위의 문제 <br/>
+# .AsNoTracking
+성능 향상 용도, 메모리에 추적된 복사본을 만들지 않고 DB에서 데이터를 검색하는데 사용되는 방법 <br/>
+엔티티 추적을 사용하도록 설정하면 EF Core는 결과 집합의 각 엔티티에 대한 프록시 객체를 만든다. <br/>
+이러한 프록시 개체는 엔티티에 대한 변경 내용을 추적하는데 사용되며, SaveChanges()가 호출될 때 DB에 업데이트한다. <br/>
+AsNoTracking()을 사용하는 경우 EF Core는 엔티티에 대한 프록시 개체를 만들지 않고 데이터를 검색한다. <br/>
+
+## 사용하는 경우
+DB에서 데이터를 읽기만 하고 엔티티를 변경하지 않으려는 경우 <br/>
+
+## 사용하지 않는 경우
+엔티티를 변경하고 DB에 다시 저장해야 하는 경우 <br/>
+
+많은 양의 데이터를 검색할 때 성능을 향상시키고 메모리 사용량을 줄일 수 있다. <br/>
 
 
 출처 : <br/>
-https://bigexecution.tistory.com/237 <br/>
+https://velog.io/@dotnetdevel/r72o0fwy <br/>
 <hr/><br/><br/>
