@@ -1,13 +1,14 @@
 # DB 동시성
 
 # 1. 동시성 효과(정합성 문제)
-동일한 데이터에 대해 여러 트랜잭션이 동시에 접근했을 때 발생하는 부작용 문제 <br/>
-잠금 레벨에 따라 아래의 문제가 생기고 안 생기고 한다. 여기서는 간략하게 설명한 것으로 자세한 이해는 2. 잠금과 3. 잠금 레벨까지 읽어야
+동일한 데이터에 대해 여러 트랜잭션이 동시에 접근했을 때 발생하는 부작용 유형 <br/>
+잠금 레벨에 따라 아래의 문제가 생기고 안 생기고 한다. <br/>
+여기서는 간략하게 설명한 것으로 자세한 이해는 2. 잠금과 3. 잠금 레벨까지 읽어야
 제대로된 이해가 가능하다.
 ## 2-1. Dirty Read
 커밋되지 않은 내용을 읽는 문제 <br/>
 한 트랜잭션에서 수정 후 커밋하지 않은 내용을 타 트랜잭션에서 읽을 때 발생하는 상황으로 아래와 같다. <br/>
-* 트랜잭션1(T1)에서 레코드 A의 값을 2로 수정, 커밋이나 롤백을 통해 트랜잭션을 끝내지는 않음
+* 트랜잭션1(T1)에서 레코드 A의 값을 2로 수정 (커밋이나 롤백을 통해 트랜잭션을 끝내지는 않음)
 * 트랜잭션2(T2)에서 레코드 A를 조회 (변경된 2가 조회)
 ## 2-2. Non-Repeatable Read(일관되지 않은 읽기)
 한 트랜잭션에서 동일한 레코드에 대해 여러번 조회를 할 때, 데이터의 내용이 일관되지 않을 경우(타 트랜잭션에 의해 변경되서) <br/>
@@ -182,23 +183,64 @@ commit
 전 단계에서 발생하는 Non-Repeatable Read를 막기 위해서 조금 더 추가된 단계로 해당 문제는 막지만 여전히 Phantom Read에 대한 문제는 남아 있는 단계이다.
 
 ## 3-4 Serializable 격리 수준
-키 범위 잠금을 통해 쿼리 필터 조건을 만족하는 모든 데이터에 대해 논리적인 잠금을 설정한다. 해석하자면 이미 존재하는 물리적인 데이터 뿐만 아니라,
+키 "범위" 잠금을 통해 쿼리 필터 조건을 만족하는 모든 데이터에 대해 논리적인 잠금을 설정한다. 
+해석하자면 이미 존재하는 물리적인 데이터 뿐만 아니라,
 쿼리 필터 조건을 만족하지만 아직 존재하지 않은 가상의 데이터까지도 잠근다. 이 단계에서 Phantom Read 정합성 문제를 막을 수 있다.
 
 ```sql
 -- T1
-begin tran;
-select * from ttt;
-waitfor delay '00:00:10'
-select * from ttt;
+set transaction isolation level serializable
+begin tran
+
 
 -- T2
-begin tran
-insert into ttt(id, name) values(6, 'fff'); -- new record
-commit;
+
+
 ```
 
+## 3-5 Snapshot
+TODO : 추후 수정
+
+## 3-6 트랜잭션 격리 레벨 요약
+격리 레벨을 무엇으로 설정하든 Write할 때 X락은 걸린다. 아래의 모든 격리 레벨에 따른 내용 차이들은 S락을 잡는 작업의 변경에 따른 차이이다. 
+<table>
+          <tr><th>격리 레벨</th><th>설명</th></tr>
+          <tr>
+                    <td>Read UnCommitted</td>
+                    <td>
+                              트랜잭션 격리 수준 중 가장 낮은 단계(레벨 0) <br/>
+                              SELECT 작업 수행 시 공유 잠금이 걸리지 않기 때문에 트랜잭션이 완료되지 않은 상태도 조회 가능 <br/>
+                              대기 없이 빠른 속도로 조회 가능하다는 장점이 있으나 모든 정합성 문제가 다 발생할 수 있다.
+                    </td>
+          </tr>
+          <tr>
+                    <td>Read Committed</td>
+                    <td>
+                              MSSQL 기본 격리 수준 <br/>
+                              SELECT할 때 S락이 걸린다. <br/>
+                              커밋된 내용만 읽기 때문에 Dirty Read는 발생하지 않으나 그 외의 문제는 여전히 발생한다.
+                    </td>
+          </tr>
+          <tr>
+                    <td>Repeatable Read</td>
+                    <td>
+                              한 트랜잭션에서 걸은 S락이 그 트랜잭션이 끝날 때까지 유지가 되는 단계 <br/>
+                              
+                    </td>
+          </tr>
+          <tr>
+                    <td>Serializable</td>
+                    <td></td>
+          </tr>
+          <tr>
+                    <td>Snapshot</td>
+                    <td></td>
+          </tr>
+</table>
+
+
 출처 : <br/>
+https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide?view=sql-server-ver17 <br/>
 https://blog.naver.com/ssayagain/90032393567 <br/>
 https://jiazzang.tistory.com/13 <br/>
 <hr/><br/><br/>
