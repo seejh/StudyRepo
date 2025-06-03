@@ -243,7 +243,7 @@ TODO : 추후 수정
 https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide?view=sql-server-ver17 <br/>
 https://blog.naver.com/ssayagain/90032393567 <br/>
 https://jiazzang.tistory.com/13 <br/>
-https://battleracoon.tistory.com/2 - sp_lock <br/>
+https://battleracoon.tistory.com/2 - sp_lock, 봐야할 거 <br/>
 <hr/><br/><br/>
 
 
