@@ -6,7 +6,7 @@
 여기서는 간략하게 설명한 것으로 자세한 이해는 2. 잠금과 3. 잠금 레벨까지 읽어야
 제대로된 이해가 가능하다.
 ## 2-1. Dirty Read
-커밋되지 않은 내용을 읽는 문제 <br/>
+커밋되지 않은 내용을 읽는 경우 <br/>
 한 트랜잭션에서 수정 후 커밋하지 않은 내용을 타 트랜잭션에서 읽을 때 발생하는 상황으로 아래와 같다. <br/>
 * 트랜잭션1(T1)에서 레코드 A의 값을 2로 수정 (커밋이나 롤백을 통해 트랜잭션을 끝내지는 않음)
 * 트랜잭션2(T2)에서 레코드 A를 조회 (변경된 2가 조회)
@@ -225,16 +225,16 @@ TODO : 추후 수정
                     <td>Repeatable Read</td>
                     <td>
                               한 트랜잭션에서 걸은 S락이 그 트랜잭션이 끝날 때까지 유지가 되는 단계 <br/>
-                              
+                              d
                     </td>
           </tr>
           <tr>
                     <td>Serializable</td>
-                    <td></td>
+                    <td>d</td>
           </tr>
           <tr>
                     <td>Snapshot</td>
-                    <td></td>
+                    <td>d</td>
           </tr>
 </table>
 
@@ -243,11 +243,12 @@ TODO : 추후 수정
 https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide?view=sql-server-ver17 <br/>
 https://blog.naver.com/ssayagain/90032393567 <br/>
 https://jiazzang.tistory.com/13 <br/>
+https://battleracoon.tistory.com/2 - sp_lock <br/>
 <hr/><br/><br/>
 
 
-# 그 외 트랜잭션 테스트
-## 테스트1
+# 그 외 내용
+## SP_LOCK, SP_WHO
 SP_LOCK, SP_WHO을 사용, 락이 걸린 상황을 체크한다. <br/>
 아래 조건 중 하나를 만족하면 해당 세션은 현재 배타 락을 걸고 있는 세션이다. <br/>
 * SP_LOCK으로 확인했을 때 배타 잠금(X)이 걸린 세션
@@ -280,8 +281,77 @@ DB세션1(spid-64)이 현재 커맨드 대기중이며 sleep 상태이다. <br/>
 
 ### 테스트1-4
 현재 락을 점유하고 있는 DB세션1을 kill을 해주거나(Kill 64) 해당 세션에서 commit이나 rollback으로 트랜잭션을
-마무리해주면 DB세션2에서 락을 획득하여 처리하고 결과물을 보여준다.
+마무리해주면 DB세션2에서 락을 획득하여 처리하고 결과물을 보여준다. <br/>
 ![rollback](https://github.com/user-attachments/assets/b265332e-4a5a-437f-9600-dff4f306d4fe) <br/>
+
+### 표 해석
+자세한 설명은 MSDN에서 참고 <br/>
+<table>
+          <tr>
+                    <th>열 이름</th>
+                    <td>spid</td>
+                    <td>dbid</td>
+                    <td>ObjId</td>
+                    <td>IndId</td>
+                    <td>Type</td>
+                    <td>Resource</td>
+                    <td>Mode</td>
+                    <td>Status</td>
+          </tr>
+          <tr>
+                    <th>데이터 형식</th>
+                    <td>smallint</td>
+                    <td>smallint</td>
+                    <td>int</td>
+                    <td>smallint</td>
+                    <td>nchar(4)</td>
+                    <td>nchar(32)</td>
+                    <td>nvarchar(8)</td>
+                    <td>nvarchar(5)</td>
+          </tr>
+          <tr>
+                    <th>설명</th>
+                    <td>잠금 요청하는 db 세션 id</td>
+                    <td>잠금이 설정된 db의 id <br/> "DB_NAME()" 함수를 사용하여 db를 식별할 수 있다.</td>
+                    <td>잠금이 유지되는 개체의 ID 번호이다 <br/> "OBJECT_NAME()" 함수를 사용하여 개체를 식별할 수 있다.</td>
+                    <td>잠금이 유지되는 인덱스의 ID 번호</td>
+                    <td>
+                              잠금 유형<br/>
+                              RID:RID(행 식별자), 행 단위 잠금<br/>
+                              KEY:인덱스가 있을 때 행 단위 잠금<br/>
+                              PAG:데이터 페이지 또는 인덱스 페이지 단위 잠금<br/>
+                              EXTENT:인접한 8개의 데이터 페이지 또는 인덱스 페이지 단위<br/>
+                              TAB:데이터 및 인덱스를 포함하여 전체 테이블 단위<br/>
+                              DB:DB를 잠금<br/>
+                              FIL:DB 파일을 잠금
+                    </td>
+                    <td>
+                              잠김 리소스를 식별하는 값 <br/>
+                              d
+                    </td>
+                    <td>
+                              잠금 모드 <br/>
+                              S:공유 잠금 <br/>
+                              
+                              X:배타 잠금 <br/>
+                              I(Intent):의도적 잠금 <br/>
+                              SQL Server가 리소스에 대해 공유 잠금 또는 배타 잠금을 얻으려할 때 먼저 거는 잠금 <br/>
+                              테이블 수준으로 걸고, 
+                              
+                              IX:의도적 배타 잠금 <br/>
+                              일단 추후 수정
+                              Sch-M(Manipulation):스키마 조작(DDL-Create, Drop 등)시에 스키마에 걸리는 잠금, 모든 잠금에 대해 배타적<br/>
+                              Sch-S(Stability):쿼리문 컴파일 시에 발생, Sch-M을 제외한 다른 잠금과 호환 가능 <br/>
+                              Range:범위 잠금
+                    </td>
+                    <td>
+                              잠금 요청 상태 <br/>
+                              CNVRT:현재 잠금에서 다른 잠금 유형으로 바꾸려고 하지만 다른 곳에서 걸려있는 잠금에 의해 대기중 <br/>
+                              GRANT:잠금을 획득한 상태 <br/>
+                              WAIT:다른 잠금에 의해 블로킹 당해 대기
+                    </td>
+          </tr>
+</table>
 
 <br/><br/>
 
