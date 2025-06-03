@@ -244,6 +244,7 @@ https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transactio
 https://blog.naver.com/ssayagain/90032393567 <br/>
 https://jiazzang.tistory.com/13 <br/>
 https://battleracoon.tistory.com/2 - sp_lock, 봐야할 거 <br/>
+https://learn.microsoft.com/ko-kr/sql/relational-databases/system-stored-procedures/sp-lock-transact-sql?view=sql-server-ver16 - mssql sp_lock<br/>
 <hr/><br/><br/>
 
 
