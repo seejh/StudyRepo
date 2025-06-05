@@ -76,7 +76,7 @@ DB 테이블에 대한 검색 성능의 속도를 높여주는 자료 구조, �
 위에서 나이 칼럼을 기준으로 정렬된 표가 인덱스이다. 정확히 말하면 user 테이블의 나이 칼럼에 인덱스를 걸어주면 인덱스를 생성한다.
 실제 DB에서는 인덱스를 생성한다고해서 실제로 정렬된 표를 확인할 수 없다. 시스템 내부적으로 생성될 뿐이다.
 
-## 인덱스 실습
+### 인덱스 실습
 인덱스를 배웠고 이것을 실제로 적용해보고 성능이 향상되는 것을 확인하는 것이 중요하다.
 
 ```sql
@@ -123,6 +123,32 @@ SELECT * FROM users
 WHERE age=23;
 ```
 
+### 기본으로 설정되는 인덱스(PK)
+테이블에서 특정 데이터를 식별하기 위한 키를 보고 기본키(Primary Key, PK)라고 한다.
+```sql
+DROP TABLE IF EXISTS users; # 기존 테이블 삭제
+
+-- 새 테이블 생성
+CREATE TABLE users(
+id INT PRIMARY KEY,
+name VARCHAR(100)
+);
+
+-- 테스트 케이스 입력
+INSERT INTO users(id, name) VALUES
+(1, 'a'),
+(3, 'b'),
+(5, 'c'),
+(7, 'd');
+
+-- 테스트
+UPDATE users
+SET id=2
+WHERE id=7;
+
+-- 인덱스 확인
+SHOW INDEX FROM users;
+```
 
 
 출처 : <br/>
