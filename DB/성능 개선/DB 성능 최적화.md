@@ -156,6 +156,43 @@ https://www.youtube.com/watch?v=vbatA68GL1I&list=PLtUgHNmvcs6rJBDOBnkDlmMFkLf-4X
 <hr/><br/><br/>
 
 
+인덱스를 배웠고 이것을 실제로 적용해보고 성능이 향상되는 것을 확인하는 것이 중요하다.
+
+테이블 생성
+DROP TABLE IF EXISTS users;
+
+CREATE TABLE users(
+id int auto_increment primary key,
+name varchar(100),
+age int
+);
+
+
+더미 생성
+-- 높은 반복 횟수를 허용하도록 설정 (아래에서 생성할 더미 개수 보다 이상)
+SET SESSION cte_max_recursion_depth = 100 0000;
+
+-- 더미 데이터 삽입 쿼리
+INSERT INTO users(name, age)
+WITH RECURSIVE cte (n) AS
+(
+SELECT 1
+UNION ALL
+SELECT n+1 FROM cte WHERE n<100 0000
+)
+SELECT
+CONCAT('User', LPAD(n, 7, '0')), -- 'User' 다음에 7자리 숫자로 구성된 이름 생성
+FLOOR(1+RAND() * 1000) AS age -- 1부터 1000 사이의 랜덤 값으로 나이 생성
+FROM cte;
+
+테스트
+소요 시간, 행 체크
+추가적으로 테스트는 한 번하는 것이 아니라 샘플을 여러 개 확보하고
+성능 향상이 어느정도되는 지 정확한 수치를 체크해야 한다.
+
+인덱스 생성 및 생성 확인
+CREATE INDEX idx_age ON users(age);
+SHOW INDEX FROM users;
 
 
 
