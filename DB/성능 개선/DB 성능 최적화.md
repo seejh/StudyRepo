@@ -37,8 +37,8 @@ DB에 부하가 걸렸을 때 성능을 개선하는 방법은 다양하다 주�
 단순히 인덱스만 적용한다고 해서 무조건 해결되는 것이 아니다. 인덱스를 적절하게 활용해야만 DB 성능이 개선된다. 
 
 ## 인덱스
-DB 테이블에 대한 검색 성능의 속도를 높여주는 자료 구조, 구체적으로는 아래와 같다. <br/>
-데이터를 빨리 찾기 위해 특정 컬럼을 기준으로 미리 정렬해놓은 표
+DB 테이블에 대한 검색 성능의 속도를 높여주는 자료 구조, 더 세세하게 설명하자면 아래와 같다.<br/>
+특정 컬럼을 기준으로 미리 정렬해놓은 테이블
 
 ### 예시를 통해 인덱스의 필요성 이해
 <table>
@@ -76,21 +76,27 @@ DB 테이블에 대한 검색 성능의 속도를 높여주는 자료 구조, �
 위에서 나이 칼럼을 기준으로 정렬된 표가 인덱스이다. 정확히 말하면 user 테이블의 나이 칼럼에 인덱스를 걸어주면 인덱스를 생성한다.
 실제 DB에서는 인덱스를 생성한다고해서 실제로 정렬된 표를 확인할 수 없다. 시스템 내부적으로 생성될 뿐이다.
 
+
+# 여기서부터 수정 필요
+# 여기서부터 수정 필요
+
 ### 인덱스 실습
 인덱스를 배웠고 이것을 실제로 적용해보고 성능이 향상되는 것을 확인하는 것이 중요하다.
 
+1. 테이블과 더미 데이터 생성
 ```sql
--- 1. 테이블 생성
+-- 기존 테이블 제거
 DROP TABLE IF EXISTS users;
 
+-- 새 테이블 생성
 CREATE TABLE users (
 id INT AUTO_INCREMENT PRIMARY KEY,
 name VARCHAR(100),
 age INT
 );
 
--- 2. 더미 생성
--- 기본 제약이 걸려있는 반복횟수를 뚫어준다. (더미 개수보다 많으면 된다.)
+-- 더미 생성
+-- 기본 제약이 걸려있는 반복 횟수를 뚫어준다. (더미 개수보다 많으면 된다.)
 SET SESSION cte_max_recursion_depth = 1000000;
 
 -- 더미 데이터 삽입
@@ -102,35 +108,52 @@ UNION ALL
 SELECT n+1 FROM cte WHERE n<1000000
 )
 SELECT
-CONCAT('User', LPAD(n, 7, '0')), -- 'User' 다음에 7자리 숫자로 구성된 이름 생성
-FLOOR(1 + RAND() * 1000) AS age -- 1부터 1000 사이의 랜덤 값으로 나이 생성
+-- CONCAT: 매개 변수들을 합쳐서 문자열로 만들어주는 함수
+-- LPAD: 왼쪽부터 특정 문자로 특정 자리만큼 채워주는 함수로 오른쪽부터 채우는 건 RPAD
+-- 'User' 다음에 7자리 숫자로 구성된 이름 생성
+CONCAT('User', LPAD(n, 7, '0')),
+-- RAND: 랜덤 숫자 생성 함수, MySQL의 경우 0~1사이의 소수값으로 가져온다.
+-- FLOOR: 소수점 버림 함수
+-- 1~1000 사이의 랜덤 값으로 나이 생성
+FLOOR(1 + RAND() * 1000) AS age
 FROM cte;
-
--- 3. 인덱스 없을 때 성능 테스트
-SELECT * FROM users
-WHERE age=23;
--- 위의 쿼리를 실행하여 소요 시간과 행 개수를 체크한다.
--- 테스트는 한 번만 하는 것이 아니라 여러 번해서 샘플을 여러 개를 얻어서 평균값을 확인하고
--- 성능 향상이 몇 %가 향상되었는 지 정확한 수치를 체크해야 한다.
-
--- 4. 인덱스 생성 및 확인
-CREATE INDEX idx_age ON users(age);
-SHOW INDEX FROM users;
-
--- 5. 인덱스를 사용할 때 성능 테스트
--- 위의 SQL문으로 인덱스를 생성한 후 다시 테스트한다.
-SELECT * FROM users
-WHERE age=23;
 ```
 
-### 기본으로 설정되는 인덱스(PK)
-테이블에서 특정 데이터를 식별하기 위한 키를 보고 기본키(Primary Key, PK)라고 한다.
+2. 인덱스없이 성능 테스트
 ```sql
-DROP TABLE IF EXISTS users; # 기존 테이블 삭제
+SELECT * FROM users WHERE age=23;
+```
+위의 쿼리를 실행하여 소요 시간과 행 개수를 체크한다.
+테스트는 한 번만 하는 것이 아니라 여러 번 체크해서 샘플을 여러 개를 얻어서 평균값을 확인하고 성능 향상이 몇 %가 향상되었는 지
+정확한 수치를 체크해야 한다. <br/>
+
+3. 인덱스 생성 후 확인
+```sql
+-- users 테이블의 age 칼럼을 기준으로 idx_age라는 이름으로 인덱스 생성
+CREATE INDEX idx_age ON users(age);
+
+-- 인덱스 생성 확인, users 테이블의 인덱스 조회
+SHOW INDEX FROM users;
+```
+
+4. 인덱스 사용 성능 테스트
+```sql
+SELECT * FROM users WHERE age=23;
+```
+TODO : 실습해보며 내용 기재해야 한다. <br/>
+
+### 기본으로 설정되는 인덱스(PK)
+테이블에서 각 행(레코드)을 식별하기 위한 키를 보고 기본키(Primary Key, PK)라고 하며 대부분의 경우에 테이블을 생성할 때 PK를 설정한다.
+PK의 특징 중 하나는 "PK를 기준으로 테이블을 정렬해서 데이터를 보관한다"는 것이다. 
+
+1. 새 테이블 생성 및 테스트 케이스 입력
+```sql
+-- 기존 테이블 삭제
+DROP TABLE IF EXISTS users;
 
 -- 새 테이블 생성
 CREATE TABLE users(
-id INT PRIMARY KEY,
+id INT PRIMARY KEY, -- PK 설정
 name VARCHAR(100)
 );
 
@@ -140,14 +163,124 @@ INSERT INTO users(id, name) VALUES
 (3, 'b'),
 (5, 'c'),
 (7, 'd');
+```
+위의 코드로 입력 후 확인하면 1, 3, 5, 7 순으로 데이터가 나온다. <br/>
 
--- 테스트
+2. 변경
+```sql
 UPDATE users
 SET id=2
 WHERE id=7;
+SELECT * FROM users;
+```
+변경 후 확인하면 4번째 행(id=7)이었던 것이 2번째 행으로 이동해서 1, 2, 3, 5 순으로 되어 있다.
+id 칼럼을 기준으로 정렬되었다는 것이고 이유는 PK가 인덱스의 일종이기 때문이다. <br/>
 
--- 인덱스 확인
+이렇게 원본 데이터 자체가 정렬되는 인덱스를 보고 클러스터링 인덱스라고 부르며 PK만이 유일한 클러스터링 인덱스이다.
+일반적으로 인덱스는 원본 테이블과 별개의 정렬된 데이터가 생기는 것인데 클러스터링 인덱스인 PK는 데이터 원본을
+정렬시킨다. <br/>
+
+3. 인덱스 조회
+```sql
+-- users 테이블의 인덱스를 조회
 SHOW INDEX FROM users;
+```
+
+### 제약 조건을 추가하면 자동으로 생성되는 인덱스 (UNIQUE)
+MySQL에서 UNIQUE라는 제약 조건을 추가하면 자동으로 인덱스가 생성된다.
+MySQL에서 UNIQUE라는 제약 조건을 사용할 때 기본적으로 인덱스의 원리를 사용해서 UNIQUE 제약 조건을 걸기 때문에 인덱스가 자동으로
+생성된다.
+
+1. 테이블 새로 생성 및 유니크 제약 조건 설정
+```sql
+DROP TABLE IF EXISTS users;
+
+CREATE TABLE users (
+id INT AUTO_INCREMENT PRIMARY KEY,
+name VARCHAR(100) UNIQUE -- 유니크 제약 조건
+
+-- 인덱스 생성되었는지 확인
+SHOW INDEX FROM users;
+);
+```
+위의 코드를 실행하면 테이블이 생성되고 id, name 필드 기반의 index들이 생긴다.
+
+### 인덱스 사용 시 주의점
+
+1. 테스트 용 테이블 생성
+인덱스가 없는 테이블과 인덱스가 많이 걸린 테이블 간의 성능 비교 <br/>
+```sql
+-- 인덱스 없는 테이블
+CREATE TABLE TableNoIndex (
+id INT AUTO_INCREMENT PRIMARY KEY,
+col1 INT, col2 INT, col3 INT, col4 INT, col5 INT, col6 INT, col7 INT, col8 INT, col9 INT, col10 INT
+);
+
+-- 인덱스 있는 테이블
+CREATE TABLE TableManyIndex (
+id INT AUTO_INCREMENT PRIMARY KEY,
+col1 INT, col2 INT, col3 INT, col4 INT, col5 INT, col6 INT, col7 INT, col8 INT, col9 INT, col10 INT
+
+-- 인덱스 있는 테이블의 모든 필드를 인덱스 등록
+CREATE INDEX idx_col1 ON TableManyIndex(col1);
+CREATE INDEX idx_col2 ON TableManyIndex(col2);
+CREATE INDEX idx_col3 ON TableManyIndex(col3);
+CREATE INDEX idx_col4 ON TableManyIndex(col4);
+CREATE INDEX idx_col5 ON TableManyIndex(col5);
+CREATE INDEX idx_col6 ON TableManyIndex(col6);
+CREATE INDEX idx_col7 ON TableManyIndex(col7);
+CREATE INDEX idx_col8 ON TableManyIndex(col8);
+CREATE INDEX idx_col9 ON TableManyIndex(col9);
+CREATE INDEX idx_col10 ON TableManyIndex(col10);
+);
+```
+
+2. 쓰기(insert) 성능 비교
+```sql
+-- 높은 반복 횟수 설정
+SET SESSION cte_max_recursion_depth = 100000;
+
+-- 인덱스가 없는 테이블에 데이터 10만 개 삽입
+INSERT INTO TableNoIndex (col1, col2, col3, col4, col5, col6, col7, col8, col9, col10)
+WITH RECURSIVE cte AS
+(
+SELECT 1 AS n
+UNION ALL
+SELECT n+1 FROM cte WHERE n<100000
+)
+SELECT
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000)
+FROM cte;
+
+-- 인덱스가 많이 걸린 테이블에 데이터 10만 개 삽입
+INSERT INTO TableManyIndex (col1, col2, col3, col4, col5, col6, col7, col8, col9, col10)
+WITH RECURSION cte AS
+(
+SELECT 1 AS n
+UNION ALL
+SELECT n+1 FROM cte WHERE n<100000
+)
+SELECT
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000),
+FLOOR(RAND() * 1000)
+FROM cte;
 ```
 
 
@@ -156,43 +289,6 @@ https://www.youtube.com/watch?v=vbatA68GL1I&list=PLtUgHNmvcs6rJBDOBnkDlmMFkLf-4X
 <hr/><br/><br/>
 
 
-인덱스를 배웠고 이것을 실제로 적용해보고 성능이 향상되는 것을 확인하는 것이 중요하다.
-
-테이블 생성
-DROP TABLE IF EXISTS users;
-
-CREATE TABLE users(
-id int auto_increment primary key,
-name varchar(100),
-age int
-);
-
-
-더미 생성
--- 높은 반복 횟수를 허용하도록 설정 (아래에서 생성할 더미 개수 보다 이상)
-SET SESSION cte_max_recursion_depth = 100 0000;
-
--- 더미 데이터 삽입 쿼리
-INSERT INTO users(name, age)
-WITH RECURSIVE cte (n) AS
-(
-SELECT 1
-UNION ALL
-SELECT n+1 FROM cte WHERE n<100 0000
-)
-SELECT
-CONCAT('User', LPAD(n, 7, '0')), -- 'User' 다음에 7자리 숫자로 구성된 이름 생성
-FLOOR(1+RAND() * 1000) AS age -- 1부터 1000 사이의 랜덤 값으로 나이 생성
-FROM cte;
-
-테스트
-소요 시간, 행 체크
-추가적으로 테스트는 한 번하는 것이 아니라 샘플을 여러 개 확보하고
-성능 향상이 어느정도되는 지 정확한 수치를 체크해야 한다.
-
-인덱스 생성 및 생성 확인
-CREATE INDEX idx_age ON users(age);
-SHOW INDEX FROM users;
 
 
 
