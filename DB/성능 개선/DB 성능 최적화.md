@@ -370,7 +370,7 @@ Filter:(users.age=23) (cost=0.95 rows=1) (actual time=0.0646..0.0748 rows=2 loop
 위에서 조회해온 데이터에 필터링(users.age=23) 작업을 했는데 0.0075ms(0.0748 - 0.0673) 가량 걸렸고 2개 행만 남기고 걸러냈다. <br/>
 
 ### 실행 계획에서 type 의미 분석하기(ALL, index)
-#### 1) ALL : 풀 테이블 스캔
+#### 1) ALL : 풀 테이블 스캔 (Full Table Scan)
 인덱스를 활용하지 않고 테이블을 처음부터 끝까지 전부 다 뒤져서 데이터를 찾는 방식. <br/>
 처음부터 끝까지 전부 다 뒤져서 데이터를 찾는 방식이다보니 비효율적이다. <br/>
 <img src="https://github.com/user-attachments/assets/18002d54-93f6-4b8e-bd83-dda426dd0bfa" width="600" height="400" />
@@ -395,7 +395,7 @@ EXPLAIN SELECT * FROM users WHERE age=23;
 type에 ALL이라고 표시되며 풀 테이블 스캔을 했다고 알려준다. "왜 풀 테이블 스캔을 했는가"를 살펴보면 users 테이블은
 현재 id 칼럼에 인덱스(PK)가 걸려있고 SELECT는 인덱스가 걸려있지 않은 age 칼럼을 조건으로 조회하므로 풀 테이블 스캔을 하게 된다.
 
-#### 2) index : 풀 인덱스 스캔
+#### 2) index : 풀 인덱스 스캔(Full Index Scan)
 인덱스 테이블을 처음부터 끝까지 다 뒤져서 데이터를 찾는 방식. <br/>
 인덱스 테이블은 실제 테이블보다 크기가 훨씬 작기 때문에 풀 테이블 스캔보다야 효율적이지만 이것도 인덱스 테이블 전체를 읽어야 하기 때문에
 아주 효율적이라고 볼 수는 없다. <br/>
@@ -439,9 +439,8 @@ name은 인덱스가 걸려있고 이미 정렬되어 있으므로 따로 할 �
 
 #### 3) const : 1건의 데이터를 바로 찾을 수 있는 경우
 조회하고자 하는 1건의 데이터를 헤매지 않고 바로 액세스해서 찾아올 수 있을 때 const가 출력된다. 고유 인덱스 또는 기본 키를 사용해서
-1건의 데이터만 조회한 경우에 const가 출력된다. 이 방식은 아주 효율적인 방식이다.
-
-여기에는 2가지 조건이 붙는다.
+1건의 데이터만 조회한 경우에 const가 출력된다. 가장 효율적인 방법이다. 
+정리하자면 2가지 조건이 붙는다.
 1) 인덱스 사용
    인덱스를 사용하지 않으면 특정 값을 일일히 다 뒤저야 한다. 그래서 바로 접근해서 찾을 수가 없다.
 2) 고유해야 한다(UNIQUE)
@@ -450,11 +449,73 @@ name은 인덱스가 걸려있고 이미 정렬되어 있으므로 따로 할 �
    고유 인덱스와 기본 키는 전부 UNIQUE한 특성을 가지고 있다.
 <img src="https://github.com/user-attachments/assets/12235d58-63ed-41c8-b28c-77cf04d60b06" width="600" height="400" />
 
-
 ##### const : 1건의 데이터 조회 예제
 ```sql
--- 코드 입력
+DROP TABLE IF EXISTS users;
+
+CREATE TABLE users(
+id INT AUTO_INCREMENT PRIMARY KEY,
+account VARCHAR(100) UNIQUE
+);
+
+INSERT INTO users(account) VALUES
+('user1@email.com'),
+('user2@email.com'),
+('user3@email.com');
+
+EXPLAIN SELECT * FROM users WHERE id=3; -- 쿼리1
+EXPLAIN SELECT * FROM users WHERE account='user3@example.com'; -- 쿼리2
 ```
+###### 쿼리1, 2 실행 결과
+![image](https://github.com/user-attachments/assets/a69c6801-8351-4aa9-bc9a-cc907d882b83) <br/>
+![image](https://github.com/user-attachments/assets/5486efb3-29d0-4b3e-8de8-db96589e686e) <br/>
+id와 account 둘 다 unique한 인덱스가 걸려있기 때문에 위와 같은 조건에서 빠르게 찾아온다.
+
+#### 4) range : 인덱스 레인지 스캔 (Index Range Scan)
+인덱스의 범위를 조회하는 경우를 말한다. 범위란 BETWEEN, 부등호(<, >, <=, >=), IN, LIKE를 활용한 데이터 조회를 뜻한다.
+이 방식도 인덱스를 활용하기 때문에 효율적인 방식이다. 하지만 인덱스를 사용하더라도 데이터를 조회하는 범위가 클 경우 성능 저하의
+원인이 되기도 한다. <br/>
+<img src="https://github.com/user-attachments/assets/445f7bbe-6da2-4fec-bbe2-2f2452c57c34" width="600" height="400" />
+
+##### range : 인덱스 레인지 스캔 예제
+```sql
+-- 100만 건
+SET SESSION cte_max_recursion_depth = 1000000;
+
+-- 더미 삽입
+INSERT INTO users(age)
+WITH RECURSIVE cte(n) AS
+(
+SELECT 1
+UNION ALL
+SELECT n+1 FROM cte WHERE n<1000000
+)
+SELECT
+FLOOR(1 + RAND() * 1000) AS age
+FROM cte;
+
+-- 인덱스 생성(age)
+CREATE INDEX idx_age ON users(age);
+
+EXPLAIN SELECT * FROM users
+WHERE age BETWEEN 10 and 20;
+
+EXPLAIN SELECT * FROM users
+WHERE age IN (10, 20, 30);
+
+EXPLAIN SELECT * FROM users
+WHERE age < 20;
+```
+
+![image](https://github.com/user-attachments/assets/459d549f-843a-4bce-a1bc-da7bb8332b81) <br/>
+
+![image](https://github.com/user-attachments/assets/b6f94644-aaf9-46d3-a475-a0e5d41d056a) <br/>
+
+#### 5) ref : 비고유 인덱스를 활용하는 경우
+UNIQUE하지 않은 인덱스를 사용하는 경우 type에 ref가 출력된다.
+
+
+
 
 출처 : <br/>
 https://www.youtube.com/watch?v=vbatA68GL1I&list=PLtUgHNmvcs6rJBDOBnkDlmMFkLf-4XVl3&index=4 <br/>
