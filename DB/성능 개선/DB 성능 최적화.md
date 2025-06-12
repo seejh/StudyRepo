@@ -369,6 +369,93 @@ Filter:(users.age=23) (cost=0.95 rows=1) (actual time=0.0646..0.0748 rows=2 loop
 ```
 위에서 조회해온 데이터에 필터링(users.age=23) 작업을 했는데 0.0075ms(0.0748 - 0.0673) 가량 걸렸고 2개 행만 남기고 걸러냈다. <br/>
 
+### 실행 계획에서 type 의미 분석하기(ALL, index)
+#### 1) ALL : 풀 테이블 스캔
+인덱스를 활용하지 않고 테이블을 처음부터 끝까지 전부 다 뒤져서 데이터를 찾는 방식. <br/>
+처음부터 끝까지 전부 다 뒤져서 데이터를 찾는 방식이다보니 비효율적이다. <br/>
+<img src="https://github.com/user-attachments/assets/18002d54-93f6-4b8e-bd83-dda426dd0bfa" width="600" height="400" />
+
+##### ALL : 풀 테이블 스캔 예제
+```sql
+CREATE TABLE users(
+id INT AUTO_INCREMENT PRIMARY KEY,
+name VARCHAR(100),
+age INT
+);
+
+INSERT INTO users(name, age) VALUES
+('Alice', 30),
+('Bob', 23),
+('Charlie', 35);
+
+EXPLAIN SELECT * FROM users WHERE age=23;
+```
+위의 코드를 실행하면 아래와 같이 표가 나온다. <br/>
+![image](https://github.com/user-attachments/assets/70a0c7d7-13ab-41cd-95f5-2c9f7b85b80b) <br/>
+type에 ALL이라고 표시되며 풀 테이블 스캔을 했다고 알려준다. "왜 풀 테이블 스캔을 했는가"를 살펴보면 users 테이블은
+현재 id 칼럼에 인덱스(PK)가 걸려있고 SELECT는 인덱스가 걸려있지 않은 age 칼럼을 조건으로 조회하므로 풀 테이블 스캔을 하게 된다.
+
+#### 2) index : 풀 인덱스 스캔
+인덱스 테이블을 처음부터 끝까지 다 뒤져서 데이터를 찾는 방식. <br/>
+인덱스 테이블은 실제 테이블보다 크기가 훨씬 작기 때문에 풀 테이블 스캔보다야 효율적이지만 이것도 인덱스 테이블 전체를 읽어야 하기 때문에
+아주 효율적이라고 볼 수는 없다. <br/>
+<img src="https://github.com/user-attachments/assets/6167a7a6-61f2-448d-b699-265b52b2c964" width="600" height="400" />
+
+##### index : 풀 인덱스 스캔 예제
+```sql
+SET SESSION cte_max_recursion_depth=1000000;
+
+-- 더미 데이터 삽입
+INSERT INTO users(name, age)
+WITH RECURSIVE cte(n) AS
+(
+SELECT 1
+UNION ALL
+SELECT n+1 FROM cte WHERE n<1000000
+)
+SELECT
+CONCAT('User', LPAD(n, 7, '0')),
+FLOOR(1 + RAND() * 1000) AS age
+FROM cte;
+
+-- 위의 코드까지 진행하여 테이블에 일단 더미 데이터 100만 건 삽입 후 아래 코드로 인덱스 생성
+-- users 테이블의 name 칼럼 인덱스 걸어준다.
+CREATE INDEX idx_name ON users(name);
+
+-- 실행 계획 확인(SELECT)
+EXPLAIN SELECT * FROM users
+ORDER BY name
+LIMIT 10;
+```
+위의 예제 코드로 더미 데이터 삽입, 인덱스 생성 후 아래의 실행 계획을 확인하면 아래와 같이 나온다. <br/>
+![image](https://github.com/user-attachments/assets/61040451-2399-42f7-b77d-fe4aa1cf812e) <br/>
+type에 index로 인덱스 풀 스캔을 했다고 알려준다. <br/>
+"SELECT * FROM users ORDER BY name LIMIT 10;", 이 구문은 users 테이블에서 name을 기준으로 정렬을 시켜서 상위 10개만 가져오라는 코드로
+name은 인덱스가 걸려있고 이미 정렬되어 있으므로 따로 할 필요가 없어서 빠르게 실행이 가능하다. 아래와 같이 동작한다. <br/>
+1) name을 기준으로 정렬해서 데이터를 가져와야 하기 때문에, name을 기준으로 정렬되어 있는 인덱스를 조회한다.
+   (덩치가 큰 users 테이블의 데이터를 하나씩 찾아보면서 정리를 하는 것보다, 이미 name을 기준으로 정렬되어 있는 인덱스를 참고하는 게 효율적이라고 판단한 것이다.)
+2) 모든 인덱스의 값을 다 불러온 뒤에 최상단 10개의 인덱스만 뽑아낸다.
+3) 10개의 인덱스에 해당하는 데이터를 users 테이블에서 조회한다.
+
+#### 3) const : 1건의 데이터를 바로 찾을 수 있는 경우
+조회하고자 하는 1건의 데이터를 헤매지 않고 바로 액세스해서 찾아올 수 있을 때 const가 출력된다. 고유 인덱스 또는 기본 키를 사용해서
+1건의 데이터만 조회한 경우에 const가 출력된다. 이 방식은 아주 효율적인 방식이다.
+
+여기에는 2가지 조건이 붙는다.
+1) 인덱스 사용
+   인덱스를 사용하지 않으면 특정 값을 일일히 다 뒤저야 한다. 그래서 바로 접근해서 찾을 수가 없다.
+2) 고유해야 한다(UNIQUE)
+   인덱스가 있는데 고유하지 않다면 원하는 데이터를 찾았다고 하더라도, 나머지 데이터에 같은 값이 있을 지도 모르기에 다른 데이터들도
+   체크해야 한다.
+   고유 인덱스와 기본 키는 전부 UNIQUE한 특성을 가지고 있다.
+<img src="https://github.com/user-attachments/assets/12235d58-63ed-41c8-b28c-77cf04d60b06" width="600" height="400" />
+
+
+##### const : 1건의 데이터 조회 예제
+```sql
+-- 코드 입력
+```
+
 출처 : <br/>
 https://www.youtube.com/watch?v=vbatA68GL1I&list=PLtUgHNmvcs6rJBDOBnkDlmMFkLf-4XVl3&index=4 <br/>
 <hr/><br/><br/>
