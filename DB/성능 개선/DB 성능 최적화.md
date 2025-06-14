@@ -497,6 +497,7 @@ FROM cte;
 -- 인덱스 생성(age)
 CREATE INDEX idx_age ON users(age);
 
+-- 테스트
 EXPLAIN SELECT * FROM users
 WHERE age BETWEEN 10 and 20;
 
@@ -506,16 +507,176 @@ WHERE age IN (10, 20, 30);
 EXPLAIN SELECT * FROM users
 WHERE age < 20;
 ```
-
+위의 테스트를 진행하면 아래와 같이 type에 range로 나오며 index 범위 기반으로 탐색을 했다는 것을 알려준다. <br/>
 ![image](https://github.com/user-attachments/assets/459d549f-843a-4bce-a1bc-da7bb8332b81) <br/>
 
 ![image](https://github.com/user-attachments/assets/b6f94644-aaf9-46d3-a475-a0e5d41d056a) <br/>
+WHERE 문의 부등호(>, <, <=, >=, =), IN, BETWEEN, LIKE와 같은 곳에서 사용되는 칼럼은 인덱스를 설정하면 성능이 향상될 가능성이 높다.
 
 #### 5) ref : 비고유 인덱스를 활용하는 경우
 UNIQUE하지 않은 인덱스를 사용하는 경우 type에 ref가 출력된다.
 
+##### ref : 비고유 인덱스 예제
+```sql
+-- 테이블 생성
+CREATE TABLE users(
+id INT AUTO_INCREMENT PRIMARY KEY,
+name VARCHAR(100)
+);
+
+-- 테스트 데이터 삽입
+INSERT INTO users(name) VALUES
+('박재성'),
+('김지현'),
+('이지훈');
+
+-- 인덱스 생성 (name)
+CREATE INDEX idx_name ON users(name);
+
+-- name을 조건으로 조회
+EXPLAIN SELECT * FROM users WHERE name='박재성';
+```
+위의 코드를 실행하면 아래와 같이 나온다. <br/>
+만약 name 칼럼이 UNIQUE 했으면 const라고 나왔겠지만 비고유 인덱스라 ref라 나왔다. <br/>
+![image](https://github.com/user-attachments/assets/9df04ff2-edea-46d6-b8b9-e7ca8db78e6b) <br/>
 
 
+eq_ref, index_merge, ref_or_null 등 다양한 타입들이 존재한다. 하지만 모든 타입들을 다 미리 공부할 필요는 없다.
+자주 나오는 type에 먼저 익숙해진 다음에 더 깊이 공부하고 싶을 때 다른 type들도 찾아서 공부하면 된다.
+
+## 6. SQL 튜닝
+### 6-1. 한 번에 너무 많은 데이터를 조회하는 SQL문 튜닝
+```sql
+DROP TABLE IF EXISTS users;
+
+CREATE TABLE users(
+id INT AUTO_INCREMENT PRIMARY KEY,
+name VARCHAR(100),
+age INT
+);
+
+-- 테스트 데이터 100만 건 삽입
+INSERT INTO users(name, age)
+WITH RECURSIVE cte(n) AS
+(
+SELECT 1
+UNION ALL
+SELECT n+1 FROM cte WHERE n<1000000
+)
+SELECT
+CONCAT('User', LPAD(n, 7, '0')),
+FLOOR(1 + RAND() * 1000) AS age
+FROM cte;
+
+-- 만 건 조회 테스트
+-- mysql 워크벤치, dbeaver 같은 GUI 툴은 조회할 수 있는 데이터 수의 리밋을 걸어놓는다.
+-- 혹시나 조회가 잘 안되면 해당 리밋을 풀어주고 사용해야 한다.
+SELECT * FROM users LIMIT 10000;
+
+SELECT * FROM users LIMIT 10;
+```
+위의 예제를 실행하면 10000 건을 찾아오는 것은 평균 200ms, 10 건 찾아오는 것은 평균 20ms 걸린다.
+위의 내용으로 알 수 있는 것은 아래와 같다.
+* 데이터가 많으면 많을수록 느려진다.
+* 조회 결과 데이터의 개수를 최소화해야 한다.
+실제 페이스북, 인스타그램의 서비스를 보더라도 한 번에 모든 게시글의 데이터를 불러오지 않는다. 스크롤을 내리면서
+필요한 데이터를 그때그때 로딩하는 방식이다. 다른 커뮤니티 서비스의 게시판을 보면 페이지네이션을 적용시켜서 일부
+데이터만 조회하려고 한다. 그 이유가 조회하는 데이터의 개수가 성능에 많은 영향을 끼치기 때문이다. <br/>
+
+데이터를 조회할 때 한 번에 너무 많은 데이터를 조회하는 것은 아닌 지 체크하고 LIMIT, WHERE 문 등을 활용해서
+SQL문을 통해 조회해오는 데이터의 수를 줄이는 것을 고려하는 것이 좋다.
+
+### 6-2. WHERE 문이 사용된 SQL문 튜닝하기
+#### 최근 3일 이내에 가입한 유저 조회하기
+```sql
+CREATE TABLE users(
+id INT AUTO_INCREMENT PRIMARY KEY,
+name VARCHAR(100),
+department VARCHAR(100),
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+SET SESSION cte_max_recursion_depth = 1000000;
+
+INSERT INTO users(name, department, created_at)
+WITH RECURSIVE cte(n) AS
+(
+SELECT 1
+UNION ALL
+SELECT n+1 FROM cte WHERE n<1000000
+)
+SELECT
+CONCAT('User', LPAD(n, 7, '0')) AS name,
+CASE
+WHEN n%10=1 THEN 'Engineering'
+WHEN n%10=2 THEN 'Marketing'
+WHEN n%10=3 THEN 'Sales'
+WHEN n%10=4 THEN 'Finance'
+WHEN n%10=5 THEN 'HR'
+WHEN n%10=6 THEN 'Operations'
+WHEN n%10=7 THEN 'IT'
+WHEN n%10=8 THEN 'Customer Service'
+WHEN n%10=9 THEN 'Research and Development'
+ELSE 'Product Management'
+END AS department, -- 의미 있는 단어 조합으로 부서 이름 생성
+
+-- 최근 10년 내 임의의 날짜 생성
+TIMESTAMP(DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 3650)DAY) + INTERVAL FLOOR(RAND() * 86400)SECOND) AS created_at
+FROM cte;
+
+-- 확인
+SELECT COUNT(*) FROM users;
+SELECT * FROM users LIMIT 10;
+
+-- 성능 측정 : create_at이 3 이하인 데이터 조회
+-- 튜닝 전 쿼리
+EXPLAIN SELECT * FROM users
+WHERE created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY);
+
+-- 튜닝 후 쿼리
+CREATE INDEX idx_created_at ON users(created_at);
+
+SHOW INDEX FROM users;
+
+EXPLAIN SELECT * FROM users
+WHERE created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY);
+```
+통상 250ms 소요, ALL(풀 테이블 스캔), Rows:99만
+통상 50ms 소요, range(인덱스 레인지 스캔), Rows:1147
+
+#### Sales 부서이면서 최근 3일 이내에 가입한 유저 조회하기
+앞 전의 예에서 조건이 추가됨 (Sale부서) <br/>
+```sql
+-- 튜닝 전 : department가 Sales이고 created_at이 3 이하인 데이터
+EXPLAIN ANALYZE SELECT * FROM users
+WHERE department='Sales'
+AND created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)
+
+-- 튜닝
+SELECT * FROM users
+WHERE department='Sales'
+AND created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY);
+
+-- 1. created_at에 index 설정
+CREATE INDEX idx_created_at ON users(created_at);
+30ms 소요
+
+-- 2. department에 index 설정
+ALTER TABLE users DROP INDEX idx_created_at;
+CREATE INDEX idx_department ON users(department);
+140ms 소요
+
+-- 3. 둘 다 설정
+
+
+```
+통상 200ms 소요, ALL(풀 테이블 스캔), Rows:127 <br/>
+![image](https://github.com/user-attachments/assets/efb18af8-925a-4c6f-80bc-21c4f0456745) <br/>
+탐색 : ALL(풀 테이블 스캔) 수행, Rows:1e+6(10^6, 100만 건) 건 액세스하여 읽어옴, 152ms 소요 + <br/>
+필터링 : 가져온 데이터에서 department가 sales인 데이터를 가져온다
+Rows:127, 약 50ms 소요(204 - 152)
+
+통상 
 
 출처 : <br/>
 https://www.youtube.com/watch?v=vbatA68GL1I&list=PLtUgHNmvcs6rJBDOBnkDlmMFkLf-4XVl3&index=4 <br/>
