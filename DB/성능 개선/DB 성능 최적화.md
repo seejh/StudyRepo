@@ -645,38 +645,62 @@ WHERE created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY);
 통상 50ms 소요, range(인덱스 레인지 스캔), Rows:1147
 
 #### Sales 부서이면서 최근 3일 이내에 가입한 유저 조회하기
-앞 전의 예에서 조건이 추가됨 (Sale부서) <br/>
+앞 전의 예에서 조건이 추가됨 (Sale부서여야 한다.) <br/>
 ```sql
--- 튜닝 전 : department가 Sales이고 created_at이 3 이하인 데이터
+-- 튜닝 전, 기존 SQL문 : department가 Sales이고 created_at이 3 이하인 데이터 조회
 EXPLAIN ANALYZE SELECT * FROM users
 WHERE department='Sales'
 AND created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)
+```
+위의 내용으로 실행했을 때 소요 시간은 평균 200ms이고 가져온 행은 127행이라고 알려준다. <br/>
+EXPLAIN으로 성능 측정하면 아래와 같이 나오며 type이 ALL로서 풀 테이블 스캔을 했다고 알려준다. <br/>
+![image](https://github.com/user-attachments/assets/13856896-f5e3-4281-ad7a-f4756cc95f1e) <br/>
 
--- 튜닝
-SELECT * FROM users
+EXPLAIN ANALYZE로 실행 계획을 더 세부적으로 보면 아래와 같이 나온다. <br/>
+![image](https://github.com/user-attachments/assets/d95490d7-39d5-443f-ac78-cd91c5ffd804) <br/>
+풀 테이블 스캔으로 996810 건(약 100만 건, 10^6)의 데이터를 152ms 걸려서 읽어온다. <br/>
+읽어온 데이터를 분류하는 필터링을 진행하는데 이 필터링에 약 50ms(204-152)이 걸려서 총 204ms가 소요됬고
+결과로 127개의 행을 가져왔다고 알려준다. <br/>
+
+##### 이제부터 성능 개선을 진행해본다.
+인덱스를 추가해야 하는데 어디에 추가할 것인가 고민이 된다. <br/>
+1. created_at에 인덱스를 추가한다.
+2. department에 인덱스를 추가한다.
+3. 둘 다 추가한다.
+실습을 통해 답을 도출해야 한다. <br/>
+###### created_at에 인덱스 추가
+```sql
+CREATE INDEX idx_created_at ON users(created_at);
+
+EXPLAIN ANALYZE SELECT * FROM users
 WHERE department='Sales'
 AND created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY);
+```
+위의 예제를 실행하면 아래와 같이 나온다. <br/>
+![image](https://github.com/user-attachments/assets/c9e71cf2-95d7-4c12-825f-a5ee5637ab7b) <br/>
+idx_created_at 인덱스 사용, users 테이블에 range(인덱스 레인지 스캔) 스캔을 진행했으며
+스캔을 진행할 때 인덱스 조건에 맞는 값들만 가져오는데 이 행위에 6.84ms 소요, 1079 행에 액세스했다고 알려준다.
+그 후 가져온 데이터를 department=Sales 조건으로 필터링하여 총 7.09ms가 걸리고 127건이 출력된다. <br/>
 
--- 1. created_at에 index 설정
-CREATE INDEX idx_created_at ON users(created_at);
-30ms 소요
-
--- 2. department에 index 설정
+##### department에 인덱스 추가
+```sql
+-- created_at에 걸어준 인덱스 제거
+-- department에 인덱스 추가
 ALTER TABLE users DROP INDEX idx_created_at;
 CREATE INDEX idx_department ON users(department);
-140ms 소요
 
--- 3. 둘 다 설정
-
-
+EXPLAIN ANALYZE SELECT * FROM users
+WHERE department='Sales'
+AND created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY);
 ```
-통상 200ms 소요, ALL(풀 테이블 스캔), Rows:127 <br/>
-![image](https://github.com/user-attachments/assets/efb18af8-925a-4c6f-80bc-21c4f0456745) <br/>
-탐색 : ALL(풀 테이블 스캔) 수행, Rows:1e+6(10^6, 100만 건) 건 액세스하여 읽어옴, 152ms 소요 + <br/>
-필터링 : 가져온 데이터에서 department가 sales인 데이터를 가져온다
-Rows:127, 약 50ms 소요(204 - 152)
+위의 예제를 실행하면 아래와 같이 나온다. <br/>
+![image](https://github.com/user-attachments/assets/53d9c5f9-893e-4e1f-8ef3-949014abb63f) <br/>
+type ref 비고유 인덱스
 
-통상 
+![image](https://github.com/user-attachments/assets/eadb8200-720b-45a0-8da3-a8fdbb0a17c2) <br/>
+
+
+
 
 출처 : <br/>
 https://www.youtube.com/watch?v=vbatA68GL1I&list=PLtUgHNmvcs6rJBDOBnkDlmMFkLf-4XVl3&index=4 <br/>
