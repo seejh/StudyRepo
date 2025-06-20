@@ -668,7 +668,7 @@ EXPLAIN ANALYZE로 실행 계획을 더 세부적으로 보면 아래와 같이 
 2. department에 인덱스를 추가한다.
 3. 둘 다 추가한다.
 실습을 통해 답을 도출해야 한다. <br/>
-###### created_at에 인덱스 추가
+###### 성능 개선 1번 - created_at에 인덱스 추가
 ```sql
 CREATE INDEX idx_created_at ON users(created_at);
 
@@ -682,7 +682,7 @@ idx_created_at 인덱스 사용, users 테이블에 range(인덱스 레인지 �
 스캔을 진행할 때 인덱스 조건에 맞는 값들만 가져오는데 이 행위에 6.84ms 소요, 1079 행에 액세스했다고 알려준다.
 그 후 가져온 데이터를 department=Sales 조건으로 필터링하여 총 7.09ms가 걸리고 127건이 출력된다. <br/>
 
-##### department에 인덱스 추가
+##### 성능 개선 2번 - department에 인덱스 추가
 ```sql
 -- created_at에 걸어준 인덱스 제거
 -- department에 인덱스 추가
@@ -699,8 +699,12 @@ type ref 비고유 인덱스
 
 ![image](https://github.com/user-attachments/assets/eadb8200-720b-45a0-8da3-a8fdbb0a17c2) <br/>
 
+##### 성능 개선 3번 - 둘 다 추가
 
 
+##### 성능 개선 테스트 후 정리
+단일 칼럼에 설정하는 일반 인덱스를 설정했을 때와 멀티 컬럼 인덱스를 설정했을 때의 성능 차이가 별로 나지 않는다면
+일반 인덱스를 사용하자.
 
 출처 : <br/>
 https://www.youtube.com/watch?v=vbatA68GL1I&list=PLtUgHNmvcs6rJBDOBnkDlmMFkLf-4XVl3&index=4 <br/>
