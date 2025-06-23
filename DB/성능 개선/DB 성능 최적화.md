@@ -299,6 +299,8 @@ TableManyIndex의 경우
 이처럼 데이터의 규모가 커지면 커질수록 속도가 느려지는 모습을 보이기에 인덱스를 사용할 때에는
 인덱스를 사용하면 읽기 성능은 상승하나 쓰기 성능은 하락한다는 점을 유의하고 인덱스의 사용을 최소화하려고 노력해야한다.
 
+
+
 ## 5. SQL 실행 계획 사용
 실행 계획이란 DB 옵티마이저가 SQL문을 어떤 방식으로 처리할 지를 계획한 것을 의미한다. 앞의 3. DB 구조 파악에서 설명한 내용으로
 우리가 쿼리를 요청하면 DB 엔진의 옵티마이저로 실행 계획을 세우고 그 실행 계획에 따라 스토리지 엔진에서 데이터를 가져온다고 했다. <br/>
@@ -646,63 +648,98 @@ WHERE created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY);
 
 #### Sales 부서이면서 최근 3일 이내에 가입한 유저 조회하기
 앞 전의 예에서 조건이 추가됨 (Sale부서여야 한다.) <br/>
+##### 기존 SQL문 (성능 개선 전)
 ```sql
--- 튜닝 전, 기존 SQL문 : department가 Sales이고 created_at이 3 이하인 데이터 조회
+-- department가 Sales이고 created_at이 3일 이하인 데이터 조회
+-- DATE_SUB(NOW(), INTERVAL 3 DAY), 현재 시간에서 3일을 뺀 시간 범위
 EXPLAIN ANALYZE SELECT * FROM users
 WHERE department='Sales'
 AND created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)
 ```
-위의 내용으로 실행했을 때 소요 시간은 평균 200ms이고 가져온 행은 127행이라고 알려준다. <br/>
-EXPLAIN으로 성능 측정하면 아래와 같이 나오며 type이 ALL로서 풀 테이블 스캔을 했다고 알려준다. <br/>
+###### EXPLAIN
 ![image](https://github.com/user-attachments/assets/13856896-f5e3-4281-ad7a-f4756cc95f1e) <br/>
+ALL (풀 테이블 스캔) 수행, 200ms 소요, 127 행 가져옴 <br/>
 
-EXPLAIN ANALYZE로 실행 계획을 더 세부적으로 보면 아래와 같이 나온다. <br/>
+###### EXPLAIN ANALYZE
 ![image](https://github.com/user-attachments/assets/d95490d7-39d5-443f-ac78-cd91c5ffd804) <br/>
-풀 테이블 스캔으로 996810 건(약 100만 건, 10^6)의 데이터를 152ms 걸려서 읽어온다. <br/>
+풀 테이블 스캔으로 약 100만 건(10^6)의 데이터를 152ms 걸려서 읽어온다. <br/>
 읽어온 데이터를 분류하는 필터링을 진행하는데 이 필터링에 약 50ms(204-152)이 걸려서 총 204ms가 소요됬고
 결과로 127개의 행을 가져왔다고 알려준다. <br/>
 
 ##### 이제부터 성능 개선을 진행해본다.
 인덱스를 추가해야 하는데 어디에 추가할 것인가 고민이 된다. <br/>
+아래와 같이 3가지 옵션이 고민되는데 추측하는 것이 아니라 실제로 각각 테스트하여 결정 <br/>
 1. created_at에 인덱스를 추가한다.
 2. department에 인덱스를 추가한다.
 3. 둘 다 추가한다.
-실습을 통해 답을 도출해야 한다. <br/>
-###### 성능 개선 1번 - created_at에 인덱스 추가
+
+##### 성능 개선 1번 - created_at에 인덱스 추가
 ```sql
+-- created_at에 인덱스 추가
 CREATE INDEX idx_created_at ON users(created_at);
 
+-- 성능 분석
 EXPLAIN ANALYZE SELECT * FROM users
 WHERE department='Sales'
 AND created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY);
 ```
-위의 예제를 실행하면 아래와 같이 나온다. <br/>
 ![image](https://github.com/user-attachments/assets/c9e71cf2-95d7-4c12-825f-a5ee5637ab7b) <br/>
-idx_created_at 인덱스 사용, users 테이블에 range(인덱스 레인지 스캔) 스캔을 진행했으며
-스캔을 진행할 때 인덱스 조건에 맞는 값들만 가져오는데 이 행위에 6.84ms 소요, 1079 행에 액세스했다고 알려준다.
-그 후 가져온 데이터를 department=Sales 조건으로 필터링하여 총 7.09ms가 걸리고 127건이 출력된다. <br/>
+인덱스 idx_created_at 사용, range(인덱스 레인지 스캔) 스캔을 진행 <br/>
+인덱스 스캔 후 조건에 맞는 값들만 가져오는데 이 행위에 6.84ms 소요, 1079행 액세스 <br/>
+그 후 가져온 데이터를 department=Sales 조건으로 필터링, 총 7.09ms 소요, 127 행만 남긴다. <br/>
 
 ##### 성능 개선 2번 - department에 인덱스 추가
 ```sql
--- created_at에 걸어준 인덱스 제거
--- department에 인덱스 추가
+-- created_at 인덱스 제거, department 추가
 ALTER TABLE users DROP INDEX idx_created_at;
 CREATE INDEX idx_department ON users(department);
 
+-- 성능 분석
 EXPLAIN ANALYZE SELECT * FROM users
 WHERE department='Sales'
 AND created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY);
 ```
-위의 예제를 실행하면 아래와 같이 나온다. <br/>
+###### EXPLAIN
 ![image](https://github.com/user-attachments/assets/53d9c5f9-893e-4e1f-8ef3-949014abb63f) <br/>
-type ref 비고유 인덱스
+type=ref (비고유 인덱스 탐색), 평균 130ms 소요, 약 19만 행 액세스 <br/>
+데이터 액세스가 많을 수록 성능에 안 좋은 영향을 끼친다는 것을 간접적으로 알 수 있다. <br/>
 
+###### EXPLAIN ANALYZE
 ![image](https://github.com/user-attachments/assets/eadb8200-720b-45a0-8da3-a8fdbb0a17c2) <br/>
+idx_department 인덱스를 사용, department=sales인 행들을 찾음, 액세스 행 19만 가량, 소요 시간 100ms, 가져온 데이터 10만 건 가량. 그 후 created_at 조건으로 필터링 진행, 127 건, 9ms 소요 <br/>
 
 ##### 성능 개선 3번 - 둘 다 추가
+```sql
+-- department는 되어 있으니까 created_at만 추가
+CREATE IDNEX idx_created_at ON users(created_at);
+
+-- 성능 분석
+EXPLAIN SELECT * FROM users
+WHERE department='Sales'
+AND created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY);
+```
+###### EXPLAIN
+![image](https://github.com/user-attachments/assets/61e3bc5c-7adc-4075-b11c-bad446e8c8dd) <br/>
+index range 스캔 진행, 사용할 수 있는 인덱스(department, created_at) 중에서 created_at 사용, 액세스 한 행 1078 행,
+소요 시간 30ms 가량 <br/>
+
+###### EXPLAIN ANALYZE
+![image](https://github.com/user-attachments/assets/300b643c-9eb3-4a1f-8128-f0b490d32ea0) <br/>
+idx_created_at 인덱스 사용, created_at>=DATE_SUB(NOW(), INTERVAL 3 DAY) 조건으로 인덱스를 index range 스캔 진행.
+이후 가져온 데이터를 department='Sales' 조건으로 필터링, 207 행 액세스, 총 6.21 ms 소요, 127 행 가져옴.
+
+##### 성능 개선 정리
+성능 개선 3번에서 인덱스를 여러 개 걸어주었지만 옵티마이저가 인덱스를 하나만 선택(created_at)하여 사용하기에
+created_at만 인덱스를 걸어준 1번 상황과 읽기 성능에서 많이 차이나지 않는다. 다만 읽기 성능은 차이가 나지 않더라도 쓰기 성능이 더 좋지 않을 것이기에 이 상황에서는 인덱스를 created_at에만 걸어주는 것이 맞다. <br/>
+
+성능에 큰 영향을 미치는 것은 결국 데이터 액세스(rows) 횟수라고 볼 수 있고 이 데이터 액세스 횟수를 줄일 수 있는 컬럼은
+중복 정도가 낮은 컬럼이며 이러한 중복 정도가 낮은 컬럼을 골라서 인덱스를 생성하는 것이 좋다. 하지만 이 규칙은 절대적인 것은
+아니다. 예외도 있다는 말이며 그래서 항상 실행 계획을 보면서 판단해야 한다. <br/>
+
+멀티 컬럼 인덱스
 
 
-##### 성능 개선 테스트 후 정리
+
 단일 칼럼에 설정하는 일반 인덱스를 설정했을 때와 멀티 컬럼 인덱스를 설정했을 때의 성능 차이가 별로 나지 않는다면
 일반 인덱스를 사용하자.
 
