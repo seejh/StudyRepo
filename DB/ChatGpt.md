@@ -1,4 +1,6 @@
-![image](https://github.com/user-attachments/assets/f85b21ac-190b-45ae-9dea-03ff70ba69a4)# 질문
+![image](https://github.com/user-attachments/assets/f85b21ac-190b-45ae-9dea-03ff70ba69a4)# 
+
+# 질문
 게임 서버 db 속도 극복
 
 # 답변
