@@ -102,17 +102,41 @@ int main() {
 }
 ```
 
-### Win32 API 내부 호출 관계
-CreateFile() (Win32) -><br/>
-CreateFileInternal() (Kernel32 내부) -><br/>
-NtCreateFile() (Native API, ntdll.dll) -><br/>
-ZwCreateFile() (커널 모드로 트랩) -><br/>
-NtCreateFile() (ntoskrnl.sys 내부 커널 함수)<br/>
+### Win32 API 호출 흐름
+```
+[User mode - 애플리케이션]
+    ↓ CreateFileW(...)            // Win32 API (kernel32.dll)
+    ↓ 내부 정규화/경로변환
+    ↓ NtCreateFile(...)           // Native API (ntdll.dll) — user→kernel transition
 
+[User→Kernel transition]
+    ↓ syscall/sysenter/interrupt  // CPU가 커널 모드로 전이
+
+[Kernel mode - ntoskrnl.exe]
+    ↓ 시스템 서비스 디스패처
+    ↓ ZwCreateFile (커널측 핸들러)
+    ↓ I/O 매니저(부르기) -> IRP 생성 (IRP_MJ_CREATE)
+    ↓ 파일 시스템 드라이버(e.g. NTFS) 처리
+    ↓ 디스크 드라이버 → 디스크 I/O 수행
+
+1. 시스템 서비스 디스패처가 syscall 번호로 서비스 루틴을 찾는다 (예:ZwCreateFile)
+2. ZwCreateFile (커널 모드 함수)은 사용자 인자를 취급하고 필요한 검사(권한, 핸들 등) 수행
+3. I/O 매니저가 IRP(IRP_MJ_CREATE)를 만들어 적절한 파일시스템 드라이버(NTFS 등)에 전달
+4. 파일시스템 드라이버가 실제 파일/메타데이터 작업 수행 ->
+5. 완료되면 NTSTATUS(성공/오류 코드)를 반환해 syscall 리턴값으로 사용자 모드에 전달.
+
+실제 파일 생성/오픈은 I/O 매니저와 파일시스템 드라이버의 협업 결과.
+NtCreateFile은 이 전체 과정을 트리거한다.
+
+[Kernel → User 반환]
+    ↑ NTSTATUS 결과 반환
+    ↑ syscall 리턴 → ntdll.dll stub → CreateFileW로 복귀
+
+```
 Win32 API는 단지 Native API를 감싸는 래퍼.<br/>
 
-### 코드 설명
 
+### 코드 설명
 #### 1. extern "C" NTSTATUS NTAPI NtWriteFile()
 이 부분이 없으면 "오류(활성) E0020 식별자 "NtWriteFile"이(가) 정의되어 있지 않습니다."와 같이 에러가 난다.<br/>
 
