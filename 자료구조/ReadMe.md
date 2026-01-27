@@ -1,5 +1,6 @@
 <img width="577" height="384" alt="image" src="https://github.com/user-attachments/assets/6fd2b074-1018-4726-a8ee-fd369c092018" />
 
+```
 [ 자료구조 (Data Structure) ]
 │
 ├─ 선형 구조 (Linear ADT)
@@ -32,3 +33,4 @@
           ├─ 방향 / 무방향
           ├─ 가중치 / 비가중치
           └─ 희소 / 밀집
+```
