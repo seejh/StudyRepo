@@ -2,7 +2,7 @@
 * 간단한 비동기 수행
 * c++ 11 표준 라이브러리
 
-## future, promise
+## 1. future, promise
 ```c++
 void worker(promise<string>* p) {
   p->set_value("some data");
@@ -55,7 +55,7 @@ int main() {
 }
 ```
 
-## packaged_task
+## 2. packaged_task
 
 ```c++
 int AsyncTask(int x) {
@@ -75,7 +75,7 @@ int main() {
 }
 ```
 
-## async
+## 3. async
 * 비동기 수행
   * std::launch::async : 새 스레드 생성, 바로 비동기 수행
   * std::launch::deferred : 현재 스레드에서, get() 호출 시 수행
