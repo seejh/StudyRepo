@@ -1,9 +1,97 @@
 # future, promise, async, packaged_task
-* 간단한 비동기 수행
+* 비동기 수행
 * c++ 11 표준 라이브러리
 
-## 1. future, promise
+## 1. async
+* 비동기 수행
+  * std::launch::async : 새 스레드 생성, 바로 비동기 수행
+  * std::launch::deferred : 현재 스레드에서, get() 호출되는 시점에 수행
+* std::future 리턴
+* std::thread 비슷하다.
+
 ```c++
+using namespace std;
+int AsyncTask(int n) { return n + 1; }
+
+int main() {
+  // 1. launch::async 옵션
+  // 즉시 새 스레드 생성하여 비동기 수행
+  future<int> ft1 = async(launch::async, AsyncTask, 1);
+
+
+  // 2. launch::deferred 옵션
+  // 이후에 get()이 호출되는 시점에 이 스레드에서 수행
+  future<int> ft2 = async(launch::deferred, AsyncTask, 1);
+
+  // 메인 스레드 작업중, 비동기 작업 아직 수행 안되고 있음.
+
+  // get() 호출, 이 스레드에서 작업
+  ft2.get();
+
+  // async()의 리턴을 받아주지 않으면 비동기로 수행되지 않고
+  // 그냥 일률적으로 수행된다.
+}
+```
+
+## 2. future, promise
+어떠한 작업을 비동기로 작업시키고 그에 대한 확인을 받는 것.
+
+* future : 비동기 작업의 결과를 나중에 받음.
+* promise : 스레드 간에 값을 안절하게 전달.
+
+
+
+
+```c++
+promise<int> pm;
+future<int> ft = pm.get_future();
+
+int result = f.get();
+
+
+// 반환 필요
+// promise, future
+promise<int> pm;
+future<int> ft = pm.get_future();
+
+thread t1(AsyncTask, pm);
+
+ft.get();
+
+// 반환 불필요 (=그냥 스레드)
+// future
+thread t1(AsyncTask);
+
+```
+
+1 promise, future 만들고
+2 비동기 작업 하는 곳에 promise 전달
+3 끝나면 promise로 신호
+4 기다리는 쪽에서는 future로 대기
+
+async를 사용하면 future 객체를 리턴,
+thread() 사용 시 promise를 사용해야 한다.
+=> 애초에 promise는 그냥 스레드 간의, 비동기 작업에서의 데이터 전달
+
+
+
+
+
+
+
+
+
+
+## 1. future, promise
+비동기 작업 완료 확인.
+
+```c++
+int main() {
+  
+}
+
+
+
 void worker(promise<string>* p) {
   p->set_value("some data");
 }
@@ -12,7 +100,7 @@ int main() {
   promise<string> p;
   future<string> ft = p.get_future();
 
-  // 스레드 수행
+  // 스레드에서 비동기 수행
   thread t(worker, &p);
 
   // future가 준비될 때까지 기다림(블로킹)
