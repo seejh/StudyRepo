@@ -1,7 +1,7 @@
 # future, promise, async, packaged_task
 * 비동기 수행
 * c++ 11 표준 라이브러리
-* 비동기 수행 완료 여부, 리턴값 전달
+* 비동기 수행 완료 여부, 스레드간 값 전달
 
 ## 1. async
 * 비동기 수행
@@ -21,7 +21,7 @@ int main() {
 
 
   // 2. launch::deferred 옵션
-  // 이후에 get()이 호출되는 시점에 이 스레드에서 수행
+  // 새 스레드 생성없이 이 스레드에서, get()이 호출되는 시점에 수행
   future<int> ft2 = async(launch::deferred, AsyncTask, 1);
 
   // 메인 스레드 작업중, 비동기 작업 아직 수행 안되고 있음.
@@ -31,13 +31,15 @@ int main() {
 
   // async()의 리턴을 받아주지 않으면 비동기로 수행되지 않고
   // 그냥 일률적으로 수행된다.
+  // "future<int> ft = async();" 가 아니라
+  // "async();"로만 하는 경우
 }
 ```
 
 ## 2. future, promise
 * 비동기 작업 완료 유무, 스레드간 값 전달
-* future: 값 받기를 대기 == Consumer
-* promise: 값 설정 == Producer
+* future: 값 받기를 대기 (=Consumer)
+* promise: 값 설정 (=Producer)
 
 ```c++
 
