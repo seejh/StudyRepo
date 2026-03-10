@@ -93,51 +93,43 @@ lvalue(좌측값)를 rvalue(우측값)로 바꿔주는 것.<br/>
 # 레퍼런스
 
 ```c++
-int t1(); // 값 반환
-int& t2(); // 레퍼런스 반환
+string func1() {
+  string str = "func1";
+  return str;
+}
+string& func2() {
+  string str = "func2";
+  return str;
+}
+string&& func3() {
+  string str = "func3";
+  return move(str);
+}
 
-// 값 반환
-int x = 10;
-int t1() { return x; }
+int main() {
+  string str1 = "main1";
+  string str2 = "main2";
+  string str3 = "main3";
 
-t1() = 20; // 컴파일 에러
+  str1 = func1();
+  cout << str1 << endl;
 
-// 레퍼런스 반환
-int x = 10;
-int& t2() { return x; }
+  str2 = func2();
+  cout << str2 << endl;
 
-t2() = 20; // OK
+  str3 = func3();
+  cout << str3 << endl;
+}
+
+결과:
+func1;
 ```
-* 값 반환
-  * f() = 임시값(rvalue)
-  * 수정할 수 있는 대상 아님
- 
-* 레퍼런스 반환
-  * t2()는 x의 다른 이름(=별칭, alias)
-  * 좌변(lvalue)로 사용 가능
- 
-### 정리
-<table>
-  <tr>
-    <td>구분</td>
-    <td>반환 의미</td>
-    <td>성능</td>
-  </tr>
-  <tr>
-    <td>값 반환(int)</td>
-    <td>값의 복사본</td>
-    <td>복사 or 이동 발생</td>
-  </tr>
-  <tr>
-    <td>레퍼런스 반환(int&)</td>
-    <td>원본 그 자체</td>
-    <td>복사 없음</td>
-  </tr>
-</table>
+T - 복사본, 임시값, 우측값<br/>
+T& - 원본, 좌측값<br/>
+T&& - 원본, 우측값<br/>
 
-반환(return)할 때 레퍼런스 타입으로 반환하면 복사 비용을 아낄 수 있다.<br/>
-그래서 stl 컨테이너는<br/>
-조회: const T&,<br/>
-수정: T&<br/>
-위와 같이 사용한다. 사용 시 주의할 점은 레퍼런스를 반환 후에 객체가 살아있음을 보장되는 환경에서 사용해야 한다.
+T로 리턴하면 복사 발생, 성능적 측면을 고려할 때 T&, T&&를 사용.<br/>
+댕글링 포인터를 주의하며 사용해야 한다.<br/>
+위의 예제에서 func2, func3은 댕글링.<br/>
 
+stl 컨테이너는 조회(const T&), 수정(T&)로 사용한다.
