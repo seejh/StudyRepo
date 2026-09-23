@@ -120,146 +120,175 @@ IPPROTO_UDP (UDP 기반 소켓=비연결 지향)<br/>
 ## 3. 주소 체계와 데이터 정렬
 ### IP 주소 (Internet Address)
 인터넷상에 존재하는 호스트들을 구분하기 위한 32비트 주소 체계를 의미.<br/>
-네트워크 주소와 호스트 주소로 이루어져 있다.<br/>
-
-
-
-네트워크 주소란 네트워크를 구분해 주는 id를 의미.<br/>
+ip 주소는 네트워크 주소와 호스트 주소로 이루어져 있다.<br/>
 
 ### Port
-한 PC 내에서 프로세스 구분<br/>
+호스트(pc) 내에서 프로세스 구분<br/>
 
-예를 들어 내 pc(ip 1.1.1.1)에서 인터넷 서핑을 하면서, 동영상을 보면서, 음악 스트리밍을 하면? 그러니까 ip 주소를 보고 호스트(pc)를 
-찾아오는데 호스트 내부에서 구분은 어떻게? 이를 포트가 한다. 포트를 보고 필요한 프로세스로 전달한다. 이는 하드웨어의 물리적 할당이 아니라
-소프트웨어의 논리적 할당이다.<br/>
+예를 들어 설명하자면 내 pc에서(ip 1.1.1.1)에서 인터넷 서핑, 동영상, 음악 스트리밍 등 여러 인터넷 활동을 동시에 한다면
+외부에서는 내 ip를 보고 찾아와서 내 pc의 인터넷 선으로 들어와서 필요한 프로세스로 전달을 어떻게 해줄까? 이것을 해주는 것이 포트이다.
+포트는 하드웨어의 물리적 할당이 아니라 소프트웨어의 논리적 할당이다.<br/>
 
-tcp 소켓과 udp 소켓은 port
+포트는 16비트를 사용하며 0~65535 포트를 할당할 수 있으며 각 포트를 점유해서 사용해야 하는데 tcp 소켓과 udp 소켓은 port를 서로 공유하지 않으므로
+중복되어도 상관없다. 어느 tcp 소켓이 9000 port를 사용하고 있을 때 다른 tcp 소켓은 해당 포트를 사용할 수 없지만 udp 소켓은 9000 포트를 사용할 수 있다.
+<br/>
 
-32비트 ip 주소로는 어느 네트워크인지, 해당 네트워크의 어떤 호스트(pc)인지를 구분하고 16비트 포트 정보로는 호스트 내에서
-프로세스를 구분하게 된다. 이것은 물리적인 개념이 아니라 호스트 내에서의 논리적인 할당이다. 논리적인 할당이란? 하드웨어적으로 구현
-되어 있는 것이 아니라 소프트웨어적으로 구현해 놓았다는 것. <br/>
+데이터 전송의 최종 목적지는 호스트(pc)가 아니라 호스트의 메모리상에 올라와 있는 실행 중인 프로세스이다. 그러므로 데이터 전송에 패킷 내에
+포트 정보도 포함되어 있어야 한다.
 
-tcp 소켓과 udp 소켓은 port를 서로 공유하지 않으므로 중복되어도 상관없다. 어느 tcp 소켓이 9190 port를 사용하고 있을 때
-다른 tcp 소켓은 9190을 사용할 수 없지만 udp 소켓은 9190 port를 사용할 수 있다. 결론적으로 데이터 전송의 최종 목적지는
-호스트(pc)가 아니라 호스트의 메모리상에 올라와 있는 실행 중에 있는 프로그램(프로세스)이다. 그러므로 데이터를 보내기 위해서
-데이터 패킷 내에 ip 주소뿐만 아니라 port 정보도 있어야 한다.
-
-### 3-3 주소 정보의 표현
-ip 주소, 포트 등 주소 정보들을 표현해주는 데이터 타입(구조체로 선언되어 있는 데이터 타입)에 대해 알아본다. 모든 프로토콜은 자신만의
-고유한 주소 포캣이 있다. 예를 들어 ipv4에서는 32비트 주소 체계를, ipv6에서는 128비트 주소 체계를 사용한다. ipv4 위주로 살펴본다.<br/>
-
-
-* ipv4 주소 체계를 나타내는 구조체
+### 주소 표현
+주소를 표현하는데 사용하는 구조체에 대해서 알아본다. ipv4 위주로 알아본다.<br/>
+아래는 ipv4 주소 체계를 나타내는 구조체이며 이 외에도 여러 구조체가 있다.
 ```
+// sockaddr_in 구조체 안의 모든 값들은 네트워크 바이트 순서로 채워져야 한다.
+// 네트워크 바이트 순서는 바로 아래서 설명
 struct sockaddr_in {
-  sa_family_t        sin_family;  // 주소 체계 (address family)
-  uint16_t           sin_port;    // 16비트 tcp or udp 포트
-  struct in_addr     sin_addr;    // 32비트 ipv4 주소
-  char               sin_zero[8]; // 사용되지 않음
+  sa_family_t      sin_family; // 주소 체계 (address family)
+  uint16_t         sin_port; // 포트 번호
+  struct in_addr   sin_addr; // ip 주소
+  char             sin_zero[8]; // 패딩용으로 사용X
 };
-
-* sin_family
-프로토콜 체계마다 주소 체계가 다르다고 하였다. 여기에는 그 주소 체계에 대한 정보를 가지는 곳이다.
-주소 체계 / 정의
-AF_INET / IPv4 인터넷 프로토콜
-AF_INET6 / IPv6 인터넷 프로토콜
-AF_LOCAL / Local 통신(pc 내 프로세스간 통신)을 위한 UNIX 프로토콜
-
-* sin_port
-16비트 포트 정보
-네트워크 바이트 순서대로 대입해야 한다.(네트워크 바이트 순서에 대해서는 잠시 후 언급)
-
-* sin_addr
-32비트 ip 주소 정보
-네트워크 바이트 순서로 저장해야 한다.
-
-* sin_zero
-특별한 의미 없이 단순히 채워주기(padding) 목적으로 사용되는 구조체 멤버
 
 struct in_addr {
-  uint32_t s_addr; // 32비트 ipv4 인터넷 주소
+  uint32_t s_addr; // ip 주소
 };
+
+// "sockaddr_in은 ipv4 주소 체계를 위한 구조체인데 왜 내부에 sin_family가 또 있는가?" 생각할 수 있다.
+// 이러한 부분은 인터넷 프로토콜 체계가 개발되던 역사적인 배경에 의한 것이라고 한다.
 ```
-이러한 데이터 타입들은 POSIX에서 그 근거를 찾을 수 있다. 
-POSIX(Portable Operating System Interface)란 유닉스 계열의 운영 체제를 위해 표준화해 놓은 인터페이스(API)이다.<br/>
 
-이제 위의 구조체의 의미를 이해할 수 있을 것이다. 근데 왜 이렇게 데이터 타입을 따로 선언해 놓은 걸까?
-확장성을 고려한 결과라고 생각하면 된다. int32_t라는 데이터 타입을 사용한다면 어떠한 경우에도 4바이트 데이터 타입이라는 것을
-보장받을 수 있다.<br/>
-
-
-### 3-4 네트워크 바이트 순서
+### 네트워크 바이트 순서
 * 빅 엔디안(Big Endian)
   * 상위 바이트의 값이 먼저 표시되는 방법
 * 리틀 엔디안(Little Endian)
   * 하위 바이트의 값이 먼저 표시되는 방법
 
 * 네트워크 바이트 순서란? (Network Byte Order)
-  * 네트워크 바이트 순서는 빅 엔디안으로 약속되어 있다.
+  * 네트워크 바이트 순서는 빅 엔디안 방식으로 약속되어 있다.
   * 인텔 등의 일반적인 cpu는 리틀 엔디안을 사용한다.
-  * 호스트(pc)에서 네트워크 전송할 때, 수신할 때 해당 바이트 순서로 맞춰줘야 한다.
+  * = 호스트에서 사용하는 데이터 표현 방식과 데이터를 송.수신할 때 바이트 표현이 다르기에 맞춰줘야 한다.
   * 시스템이 리틀 엔디안인 경우
     * 송신할 때 빅 엔디안 변경
     * 수신할 때 리틀 엔디안으로 변경
 
-* 바이트 순서 변환
 ```
+// 네트워크 바이트, 호스트 바이트 변환 방법
+// 의미
 h: host byte order
 n: network byte order
 s: short, 16bit, 포트
 l: long, 32bit, ip 주소
 
-unsigned short htons
-unsigned short ntohs
-unsigned long htonl
-unsigned long ntohl
+// 변환 함수
+unsigned short htons(unsigned short);
+unsigned short ntohs(unsigned short);
+unsigned long htonl(unsigned long);
+unsigned long ntohl(unsigned long);
 
-// 하나만 예를 들어서 표현 htons
-// short(16비트) 데이터를 host 바이트 순서에서 network 바이트 순서로 변경 
-```
+// 하나만 예를 들어서 의미 표현 (htons)
+// short(16비트) 데이터를 host 바이트 순서에서 network 바이트 순서로 변경
 
-또한 sockaddr_in 구조체 안의 모든 값들은 네트워크 바이트 순서로 채워져야 한다.
-```
+// 실제 예제
 int main() {
-  // 2바이트 데이터 (host 바이트 순서)
-  short host_port_order = 0x1234; // 1234
-  
-  // 4바이트 데이터 (host 바이트 순서)
-  long host_add_order = 0x12345678; // 12345678
-  
-  // 네트워크 바이트 순서로 변환
-  // 시스템이 애초에 빅 엔디안이라면 아무런 일도 일어나지 않는다.
-  short net_port_order = htons(host_port_order); // 12345678
-  long net_add_order = htonl(host_add_order); // 78563412
+  // 2바이트 데이터(현재 host byte 순서, 포트)
+  short hostPortOrder = 0x1234; // 1234
+
+  // 4바이트 데이터(현재 host byte 순서, ip 주소)
+  long hostAddrOrder = 0x12345678; // 12345678
+
+  // host byte 순서(리틀 엔디안) -> network byte 순서(빅 엔디안) 변환
+  short netPortOrder = htons(hostPortOrder); // 3421
+  long netAddrOrder = htonl(hostAddrOrder); // 78563412
 }
 ```
 
-### 3-5 인터넷 주소 조작
+### ip 주소 변환
+ip 주소를 편하게 다루기 위한 함수들.<br/>
+inet_addr, inet_aton, inet_ntoa<br/>
+
+* inet_addr
 ```c++
-// Dotted-Decimal Notation을 Big-Endian 32비트 값으로 변환
-// 성공 시 Big_Endian 32 비트 값, 오류 시 INADDR_NONE(-1) 리턴
-unsigned long inet_addr(const char* string);
+// Dotted Decimal을 네트워크 바이트 순서 32비트로 변환
+// 성공 시 네트워크 바이트 순서 32비트, 오류 시 INADDR_NONE 리턴
+unsigned long inet_addr(const char* string)
 
-unsigned long addr;
-addr = inet_addr("1.2.3.4");
-addr = inet_addr("1.2.3.256"); // INADDR_NONE
-
-// 성공 시 true(0이 아닌 값), 실패 시 false(0) 리턴
-// 위랑 동일
-// 
-int inet_aton(const char* string, struct in_addr* addr);
-
-
-
-// 성공 시 변환된 문자열의 포인터, 실패 시 -1 리턴
-// 네트워크 바이트 순서 32비트를 Dotted-Decimal Notation으로 변환
-char* inet_ntoa(struct in_addr addr);
+// 예
+unsigned long addr = inet_addr("1.1.1.1");
 ```
 
-### 3-6 인터넷 주소 초기화
-### 3-7 주소 정보 할당하기
-### 3-8 윈도우즈 기반으로 구현하기
-### 3-9 WSAStringToAddress & WSAAddressToString
+* inet_aton
+```c++
+// Dotted Decimal을 네트워크 바이트 순서 32비트로 변환 (위와 동일)
+// 얘는 변환 후 주소 구조체에 대입까지 해준다.
+// 성공 시 true, 실패 시 false 리턴
+int inet_aton(const char* string, struct in_addr* addr);
+
+// 예
+struct sockaddr_in addr;
+if (inet_aton("1.1.1.1", &addr.sin_addr) == false)
+```
+
+* inet_ntoa
+```c++
+// 네트워크 바이트 순서 32비트 값을 Dotted Decimal로 변환 (위의 두 경우와 반대)
+// 성공 시 변환된 문자열의 포인터, 실패 시 -1 리턴
+char* inet_ntoa(struct in_addr addr);
+
+// 예
+struct sockaddr_in addr;
+addr.sin_addr.s_addr = inet_ntoa(addr);
+```
+
+### 주소 구조체 초기화
+struct sockaddr_in addr;
+char* ip = "111.111.111.111";
+char* port = "7777";
+memset(&addr, 0, sizeof(addr_len));
+addr.sin_family = AF_INET;
+addr.sin_addr.s_addr = htonl(INADDR_ANY); // or
+addr.sin_addr.s_addr = inet_addr(ip);
+addr.sin_port = htons(atoi(port));
+
+### 소켓에 주소 할당
+아래 함수를 사용하여 소켓에 주소를 할당한다.
+```
+// sockfd = 소켓 파일 디스크립터
+// addr = 주소 구조체
+// addrLen = 주소 구조체 길이
+int bind(int sockfd, struct sockaddr* addr, int addrLen)
+```
+
+### 윈도우즈 기반에서 소켓 네트워크 구현
+```c++
+int main() {
+  //
+  char* ip = "127.0.0.1";
+  char* port = "7777";
+
+  // 윈속 초기화
+  WSADATA wsaData;
+  if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+    return 0;
+
+  // 소켓 생성 (tcp 소켓)
+  SOCKET sock = socket(PF_INET, SOCK_STREAM, 0);
+  if (sock == INVALID_SOCKET)
+    return 0;
+
+  // 주소 구조체 초기화
+  SOCKADDR_IN addr;
+  memset(&addr, 0, sizeof(addr));
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = inet_addr(ip);
+  addr.sin_port = htons(atoi(port));
+
+  // 바인드 (소켓에 주소 할당)
+  if (bind(sock, (SOCKADDR*)&addr, sizeof(addr)) == SOCKET_ERROR)
+    return 0;
+
+  WSACleanup();
+}
+```
 
 
 
