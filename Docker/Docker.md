@@ -1,14 +1,12 @@
-### 쉽게
-VM 같은 거.
-
 ### 윈도우에서 도커 사용
 Docker는 리눅스 환경에서 돌아간다. 이를 윈도우 환경에서 돌리려면 WSL이 필요하다.<br/>
 WSL 설치 후 도커 데스크톱 설치.<br/>
 PreUser(개인용), AllUsers(윈도우 전체 사용자용) 중 개인용으로 설치.<br/>
 
-* WSL (Windows Subsystem for Linux)
-MS의 윈도우에서 리눅스를 사용하는 기술.<br/>
+### WSL (Windows Subsystem for Linux)
+MS의 윈도우에서 리눅스를 사용하는 기술, 
 다른 VM과의 차이점은 호스트 os 공간과 별개로 잡는 것이 아니라 공유.<br/>
+
 
 ### 도커 감잡기 예제
 ```
