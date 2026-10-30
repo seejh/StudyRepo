@@ -2,94 +2,41 @@
 https://www.yougetsignal.com/ko/library/tcp-keep-alive-pbq6wwk<br/>
 https://tech.kakao.com/posts/321<br/>
 https://vincent.bernat.ch/en/blog/2014-tcp-time-wait-state-linux<br/>
-
-```diff
--이 줄은 빨간색(-)
-+이 줄은 초록색(+)
-!이 줄은 주황색 또는 노란색(!)
-#이 줄은 회색(#)
-```
-
-단어<sup>윗 첨자</sup>
-단어<sub>아랫 첨자</sub>
 <hr/>
-
-
-
-## TCP 상태
-* LISTEN: 서버가 연결을 기다리는 중
-* SYN_SENT, SYN_RECV: 핸드 쉐이크 진행 중
-* ESTABLISHED: 연결되어 송수신 중
-* FIN_WAIT / LAST_ACK: 종료 절차 진행 중
-* TIME_WAIT: 먼저 닫은 쪽, 잔여 패킷 대비로 대기
-* CLOSE_WAIT: 상대가 닫았는데 내 압이 아직 close() 안한 상태
-실무 핵심: TIME_WAIT은 연결을 먼저 끊은 쪽에서 들어가는 정상적인 상태로, 짧은 연결을 많이 맺을수록 쌓인다.
-보통 문제될 것이 없으며 반면 CLOSE_WAIT은 내가 passive일 때 들어가는 상태로 이게 많으면 거의 항상 내 애플리케이션이 소켓을
-close()하지 않는 '버그'이다. 
 
 ## 4Way Handshake
 <img width="545" height="472" alt="image" src="https://github.com/user-attachments/assets/4295f933-b641-4c83-8b92-7aaf2d6279ee" /><br/>
 a(active closer), p(passive closer)<br/>
-a: established -> FIN_WAIT1 -> FIN_WAIT2 -> TIME_WAIT -> CLOSED<br/>
-p: established -> CLOSE_WAIT -> LAST_ACK -> CLOSED<br/>
+a 상태 변화: established -> FIN_WAIT1 -> FIN_WAIT2 -> TIME_WAIT -> CLOSED<br/>
+p 상태 변화: established -> CLOSE_WAIT -> LAST_ACK -> CLOSED<br/>
 
-### 정상 흐름
-__1.a는 FIN을 보내고 상대의 ACK를 기다린다. 상태가 FIN_WAIT_1로 변경된다.__ <br/>
-2.p는 FIN을 받고 상대에게 ACK를 보낸다. 상태가 CLOSE_WAIT으로 변경된다. <br/>
-__3.a는 ACK를 받고 상대의 FIN을 기다린다. 상태가 FIN_WAIT_2로 변경된다.__ <br/>
-4.p는 FIN을 보내고 상대의 ACK를 기다린다. 상태가 LAST_ACK로 변경된다. <br/>
-__5.a는 FIN을 받고 상대에게 ACK를 보낸다. 상태가 TIME_WAIT이 된다.__ <br/>
-6.p는 ACK를 받고 CLOSED가 된다. <br/>
-__7.a는 시간이 지나면 CLOSED가 된다.__ <br/>
+1. a는 FIN을 보내고 FIN_WAIT_1 상태가 되어 상대의 ACK를 기다린다.
+2. p는 FIN을 받고 ACK 응답 후 CLOSE_WAIT 상태가 된다.
+3. a는 ACK 응답을 받으면 FIN_WAIT_2 상태가 되어 상대의 FIN을 기다린다.
+4. p는 FIN을 보내고 상태가 LAST_ACK가 된다.
+5. a는 FIN를 받고 ACK를 응답한 뒤 TIME_WAIT 상태가 된다.
+6. p는 상대의 ACK를 받고 CLOSED.
+7. a도 timewait 대기 후 CLOSED.
 
-### 애플리케이션 계층을 포함한 흐름 - 정리 필요
-a측 애플리케이션에서 종료를 요청하면 커널에서 상대방에게 FIN 패킷을 보내고 FIN_WAIT_1 상태로 변경.<br/>
-여기서 종료 요청을 socketclose()를 하면 소켓 핸들을 커널에 반납하고 애플리케이션에서는 더 이상 신경쓰지 않는다.
-shudown(SD_SEND)를 하면 send는 닫고 recv는 대기한다.<br/>
+### 애플리케이션 레벨 포함
+a에서 close() 호출하여 상대에게 FIN 전송 후 FIN_WAIT_1 상태로 변경, 타이머가 있어서 상대에게 ACK를 듣지 못하더라도 문제가 없다.<br/>
+timeout -> RST 전송, CLOSED<br/>
+ACK 수신 -> FIN_WAIT_2<br/>
 
-아래는 tcp 종료에 권장되는 흐름이다.(Graceful Shutdown)<br/>
-```c++
-// 송신만 종료
-shutdown(socket, SD_SEND);
+p의 커널에서 상대의 FIN을 수신 후 ACK 응답 후 CLOSE_WAIT 상태로 변경 후 수신 버퍼에 EOF를 넣는다.
+CLOSE_WAIT 상태라는 것은 상대의 종료를 확인 후 애플리케이션 레벨에서 종료를 위한 준비를 기다려주는 것으로
+"애플리케이션 recv() -> EOF로 상대 종료 확인 -> 데이터 정리 등 종료 준비 -> close 호출 -> FIN 전송" 수순으로 동작한다.
+FIN 전송 후 p는 LAST_ACK 상태로 진입한다.<br/>
 
-// 상대방이 남은 데이터를 다 보내고 FIN을 보낼 때까지 read
-while (true) {
- int recvLen = recv(socket, ...);
- if (recvLen <= 0)
-  break;
-}
+### 주의
+CLOSE_WAIT 상태는 애플리케이션에서 close를 호출하기 전까지 커널에서 기다려주겠다는 것으로 내부 타이머가 존재하지 않는다.
+1) p에서 상대방 FIN 수신 후 애플리케이션에서 close를 호출 X (행 등)
+2) a에서 상대방에서 RST 조차도 보내지 못 할 경우(선뽑, 정전 등)
 
-// 소켓 정리
-closesocket(socket);
-```
-권장되는 흐름이라지만 실무에서는 거의 사용하지 않는다고 한다. 대신에 애플리케이션 레벨에서 종료 규약을 정의하고 closesocket()으로 바로 끝내는 방식을
-훨씬 더 많이 사용한다. 위 방식은 shutdown(SD_SEND)를 하고 상대방이 FIN을 줄 때까지 recv()로 대기하는데 상대방이 악의적이거나 버그로 인해 FIN을 보내지 않으면
-대기하게 된다.(FIN을 받지 못하더라도 내부 타이머가 존재하긴 한다.)<br/>
+위의 두 조건이 만족하면 CLOSE_WAIT은 프로그램을 종료하거나 close를 호출할 때까지 CLOSE_WAIT으로 유지하게 된다.
 
 SO_LINGER<br/>
 closesocket()을 호출했을 때 커널이 버퍼에 남은 데이터를 상대방에게 다 보낼 때까지 지정한 시간 동안 프로세스를 대기시켜 안전하게 전송 후 종료.<br/>
-
-<br/>
-p의 커널에서 상대의 FIN을 받고 ACK 응답 후 소켓을 CLOSE_WAIT으로 변경, 소켓 수신 버퍼의 맨 뒤에 EOF 삽입. 수신 스트림 종료.
-
-
-### 각 구간별 생길 수 있는 문제
-a가 FIN을 보내고 상대의 ACK를 못 받는 경우(1):<br/>
-a가 FIN을 보냈는데 상대가 그에 대한 ACK가 없는 경우, 현재 a는 FIN을 보내고 FIN_WAIT_1인 상태이며 이 경우 a는 본인이 보낸
-FIN 패킷이 유실되었다고 생각하여 FIN 패킷을 일정 주기로 재전송하다가 timeout을 넘으면 연결을 끊는다.<br/>
-
-a가 FIN을 보내고 상대의 ACK는 받았으나 FIN을 못 받는 경우(3):<br/>
-(active 입장) a가 FIN을 보내고 상대의 ACK까지는 받고 현재 FIN_WAIT_2로 넘어가 상대의 FIN을 기다리는 상태.
-timeout 시간까지는 대기하다가 연결을 끊는다.<br/>
-
-(passive 입장) a가 상대의 FIN을 받고 ACK 응답 후 CLOSE_WAIT 상태 진입한 상태. 이게 프로그래머 입장에서는 "현재 애플리케이션에서 recv()를 걸어두고
-대기 중 -> FIN 패킷 수신 (0 BYTE RECV) -> close() 호출" <- 이렇게 하는 것이 정상적 흐름이고 여기서 FIN 패킷 수신 후 close() 호출을 해야 상대방에서 FIN 패킷을
-전송한다. 그렇지 않아도 커널에서 timeout을 둬서 자동으로 보내주기는 하지만 상대방 입장에서 기다려야 하고 나 또한 CLOSE_WAIT으로 오래 기다려야 한다.<br/>
-쉽게 말하면 CLOSE_WAIT 상태는 애플리케이션 레벨에서 종료할 준비를 주는 단계이며 애플리케이션에서 close()를 명시해주면 상대에게 FIN을 보낸다. close()를 명시하지 않더라도
-OS 레벨에서 타임아웃으로 자동으로 보내주고 프로세스가 정상, 강제, 크래시가 나서 종료되는 경우라 할지라도 OS 레벨에서 상대에게 FIN 패킷을 보내준다.
-프로세스가 종료되는 시점에 소켓 커널 버퍼에 상대로부터 받았지만 아직 애플리케이션이 읽지 않은 데이터가 남아 있으면 커널은 정상적 종료가 불가능하다 판단하여 FIN 대신
-RST 패킷을 보내 연결을 즉시 끊을 수도 있다.
-<br/>
 
 
 
@@ -185,20 +132,20 @@ TCP_NODELAY의 활성화, 비활성화의 동작 방식이 너무 극단적이�
 
 
 ## TIME_WAIT
-TCP 연결이 닫힐 때 종료를 먼저 시작한 쪽은 4Way Handshake를 완료한 후 TIME_WAIT 상태로 진입한다. 소켓은 커널의 연결 테이블에 그대로 남아
-로컬 주소, 로컬 포트, 원격 주소, 원격 포트의 정확한 조합이 즉시 재사용되지 않도록 막는다. 지속 시간은 2MSL(MSL, Maximum Segment Lifetime, 최대 세그먼트 수명)로
+tcp에서 연결을 먼저 종료하는 측에서 연결을 종료 후 일정 시간 대기하게 되는 상태로 소켓은 커널의 연결 테이블에 남아 "로컬 주소, 로컬 포트, 원격 주소, 원격 포트"의
+정확한 조합이 즉시 재사용되지 않도록 막는다. 지속 시간은 2MSL(MSL, Maximum Segment Lifetime, 최대 세그먼트 수명)로
 최대 세그먼트 수명의 2배이다. MSL은 TCP 세그먼트가 네트워크에서 폐기되기 전까지 살아있는 이론적 최대 시간으로 보통 30초이다.<br/>
 
-TIME_WAIT이 존재하는 이유는 아래 2가지 때문이다.<br/>
-### 떠도는 패킷 문제
+### TIME_WAIT이 존재하는 이유는 아래 2가지 때문이다.
+#### 떠도는 패킷 문제
 이전 연결에서 출발한 패킷이 새로 연결이 성립된 뒤에 도착하고 유효한 데이터로 받아들여 질 수 있다.
-### 손실된 ACK 문제 - 정리 필요
-"ac에서 pc로 FIN 패킷 전송 => pc에서 ac로 ACK 전송 => pc에서 ac로 FIN 전송", 이후 ac에서 pc로 보낸 ACK가 유실되면 pc는 FIN을 재전송한다.
-TIME_WAIT이 없다면 이미 연결 상태를 삭제한 시스템은 재전송된 FIN에 RST로 응답하게 된다. 그러면 상대방은 연결이 실제로 닫혔는지 알 수 없다.<br/>
+#### 손실된 ACK 문제
+정상 종료를 위해 최악을 가정해 기다리는 것으로 4way handshake의 가장 마지막에 a가 보내는 ACK가 유실되면 p는 FIN을 재전송하게 된다.
+a에서 재전송된 FIN 수신을 하지만 TIME_WAIT이 끝나 RST로 응답, p에서는 RST에 의한 강제 종료.<br/>
 
-카카오 기술 문서<br/>
-마지막 ACK가 유실되면 pc는 LAST_ACK 상태에 있게 되고 새로운 SYN 패킷 전달 시 RST를 리턴한다. 새로운 연결은
-오류를 내며 실패한다. 
+그러니까 TIME_WAIT은 a가 내가 이 통신의 마지막을 책임지고 정리하겠다.
+
+## UDP
 
 
 
@@ -215,15 +162,22 @@ TIME_WAIT이 없다면 이미 연결 상태를 삭제한 시스템은 재전송�
 
 * 4Way-Handshake
   * TCP 연결 종료 과정.
-  * 이 과정에서 발생할 수 있는 비효율, 비정상 예방 및 처리.
-  * TIME_WAIT
-    * 먼저 연결 종료를 하는 쪽은 TIME_WAIT을 해야 한다.
-    * 클라이언트에서 먼저 종료하게 유도
-  * d
+  * time_wait은 active closer가 진입해야 하는 정상적인 상황으로 연결 종료는 클라이언트가 먼저 하게 유도
+  * ㅇㅇㅇㅇ
 
 
 
 
 
+<hr/>
+```diff
+-이 줄은 빨간색(-)
++이 줄은 초록색(+)
+!이 줄은 주황색 또는 노란색(!)
+#이 줄은 회색(#)
+```
+
+단어<sup>윗 첨자</sup>
+단어<sub>아랫 첨자</sub>
 
 
