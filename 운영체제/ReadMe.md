@@ -2,7 +2,7 @@ https://www.geeksforgeeks.org/operating-systems/operating-systems/ <br/>
 https://www.youtube.com/watch?v=wEW6SAfw7AA&list=PLp3Ir475YKmBqQFEJ4JTmk2_FjgKBlJ-g&index=18 <br/>
 
 
-운영체제 - 반효경 (이화여대, 2014)<br/>
+운영체제 - 반효경 교수 (이화여대, 2014)<br/>
 <hr/>
 
 * Basics, 기초 내용
