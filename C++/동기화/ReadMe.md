@@ -64,6 +64,40 @@ c++
 * total cpu = self + 해당 함수에서 호출한 하위 함수에서 cpu 사용량
 * self cpu = 해당 함수 자체 cpu 사용량
 
+```
+mutex g_m;
+int g_count = 0;
+
+void ThreadTask() {
+	int count = 0;
+
+	while (true) {
+
+		g_m.lock();
+
+		if (g_count >= 1000'0000) // 1억
+			break;
+
+		++count;
+		++g_count;
+
+		g_m.unlock();
+	}
+}
+
+int main() {
+	
+	thread t1(ThreadTask);
+	thread t2(ThreadTask);
+
+
+	t1.join();
+	t2.join();
+
+	cout << "system end" << endl;
+}
+```
+
 <img width="800" height="350" alt="image" src="https://github.com/user-attachments/assets/39448478-06ff-4733-ada8-6f21327f96a6" /><br/>
 <img width="800" height="450" alt="image" src="https://github.com/user-attachments/assets/d228dd01-0242-4bc6-94aa-e32354db6c94" /><br/>
 RtlAcquireSRWLockExclusive 락 획득 함수의 cpu 사용률 = 락 경쟁
